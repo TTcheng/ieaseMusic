@@ -9,11 +9,10 @@ import clazz from 'classname';
 import classes from './classes';
 import helper from 'utils/helper';
 import ProgressImage from 'ui/ProgressImage';
+import Header from 'components/Header';
 
 @inject(stores => ({
     loading: stores.search.loading,
-    show: stores.search.show,
-    close: () => stores.search.toggle(false),
     follow: stores.artist.follow,
     playlists: stores.search.playlists,
     getPlaylists: stores.search.getPlaylists,
@@ -37,7 +36,6 @@ class Search extends Component {
     };
 
     reset() {
-        this.props.close();
         this.setState({
             renderContent: this.renderPlaylist.bind(this),
             search: this.props.getPlaylists,
@@ -275,32 +273,27 @@ class Search extends Component {
     }
 
     render() {
-        var { classes, loading, show } = this.props;
-
-        if (!show) {
-            return false;
-        }
+        var { classes, loading } = this.props;
 
         return (
-            <div
-                className={classes.container}
-                // Press ESC close
-                onKeyUp={e => e.keyCode === 27 && this.reset()}>
-                <img
-                    alt="Close"
-                    className={classes.close}
-                    onClick={() => this.reset()}
-                    src="assets/close-white.png" />
+            <div className={classes.container}>
+                <Header
+                    {...{
+                        showBack: true,
+                        className: classes.header
+                    }}
+                />
 
-                <div className={classes.inner}>
-                    <header>
+                <main>
+                    <summary>
                         <input
                             autoFocus={true}
                             onKeyUp={e => this.search(e)}
                             placeholder="Search ..."
                             ref="search"
-                            type="text" />
-                    </header>
+                            type="text"
+                        />
+                    </summary>
 
                     <nav>
                         <span
@@ -352,7 +345,7 @@ class Search extends Component {
                                 : this.state.renderContent()
                         }
                     </section>
-                </div>
+                </main>
             </div>
         );
     }

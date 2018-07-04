@@ -7,9 +7,9 @@ import classes from './classes';
 import ProgressImage from 'ui/ProgressImage';
 import Loader from 'ui/Loader';
 import Hero from 'components/Hero';
+import Header from 'components/Header';
 
 @inject(stores => ({
-    close: () => stores.lyrics.toggle(false),
     loading: stores.lyrics.loading,
     getLyrics: () => stores.lyrics.getLyrics(),
     lyrics: stores.lyrics.list,
@@ -34,26 +34,33 @@ class Lyrics extends Component {
         if (times.length === 0) {
             return (
                 <div className={classes.placeholder}>
-                    <span>Nothing ...</span>
+                    <span>
+                        Nothing ...
+                    </span>
                 </div>
             );
         }
 
-        return times.map((e, index) => {
-            return (
-                <p
-                    data-times={e}
-                    key={index}>
-                    <span>
-                        {lyrics[e]}
-                    </span>
-                </p>
-            );
-        });
+        return times.map(
+            (e, index) => {
+                return (
+                    <p
+                        data-times={e}
+                        key={index}
+                    >
+                        <span>
+                            {
+                                lyrics[e]
+                            }
+                        </span>
+                    </p>
+                );
+            }
+        );
     }
 
     render() {
-        var { classes, loading, song, close } = this.props;
+        var { classes, loading, song } = this.props;
 
         if (loading || !song.id) {
             return <Loader show={true} />;
@@ -61,29 +68,33 @@ class Lyrics extends Component {
 
         return (
             <div className={classes.container}>
-                <img
-                    alt="Close"
-                    className={classes.close}
-                    onClick={close}
-                    src="assets/close.png" />
+                <Header
+                    showBack={true}
+                    className={classes.header}
+                />
 
-                <Hero close={close} />
+                <Hero location={this.props.location} />
 
                 <aside
+                    id="lyrics"
                     className={classes.lyrics}
-                    id="lyrics">
-                    <ProgressImage {...{
-                        height: window.innerHieght,
-                        width: window.innerHieght,
-                        src: song.album.cover.replace(/\?.*$/, ''),
-                    }} />
+                >
+                    <ProgressImage
+                        {...{
+                            height: window.innerHieght,
+                            width: window.innerHieght,
+                            src: song.album.cover.replace(/\?.*$/, ''),
+                        }}
+                    />
 
                     <section>
-                        <div style={{
-                            position: 'relative',
-                            paddingTop: '10vh',
-                            paddingBottom: '14vh',
-                        }}>
+                        <div
+                            style={{
+                                position: 'relative',
+                                paddingTop: '10vh',
+                                paddingBottom: '14vh',
+                            }}
+                        >
                             {
                                 this.renderLyrics()
                             }

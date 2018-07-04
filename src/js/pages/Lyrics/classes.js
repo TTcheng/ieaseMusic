@@ -23,13 +23,14 @@ export default theme => ({
         },
     },
 
-    close: {
-        position: 'absolute',
-        height: 32,
-        top: 22,
-        right: 16,
-        cursor: 'pointer',
-        zIndex: 9,
+    header: {
+        '& figure': {
+            display: 'none',
+        },
+
+        '& section': {
+            background: 'transparent',
+        },
     },
 
     lyrics: {

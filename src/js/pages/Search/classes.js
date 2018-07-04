@@ -12,11 +12,15 @@ export default theme => ({
         background: 'rgba(0, 0, 0, .7)',
         zIndex: 99,
 
+        '& main': {
+            margin: '0 32px',
+        },
+
         '& input': {
             height: 32,
             lineHeight: '32px',
             width: '100%',
-            marginTop: 40,
+            marginTop: 60,
             marginBottom: 30,
             border: 0,
             fontSize: 32,
@@ -64,16 +68,14 @@ export default theme => ({
         }
     },
 
-    close: {
-        position: 'absolute',
-        height: 32,
-        top: 16,
-        right: 32,
-        cursor: 'pointer',
-    },
+    header: {
+        '& figure': {
+            display: 'none',
+        },
 
-    inner: {
-        margin: '0 32px',
+        '& section': {
+            background: 'transparent',
+        },
     },
 
     selected: {
@@ -94,7 +96,7 @@ export default theme => ({
 
     list: {
         ...perdido.utils.clearFix,
-        height: 'calc(100vh - 32px - 70px - 32px)',
+        height: 'calc(100vh - 32px - 93px - 32px)',
         overflow: 'hidden',
         overflowY: 'auto',
     },
