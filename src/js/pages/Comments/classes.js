@@ -21,15 +21,6 @@ export default theme => ({
             letterSpacing: 1,
             wordSpacing: 2,
         },
-
-    },
-
-    close: {
-        position: 'absolute',
-        height: 32,
-        top: 16,
-        right: 16,
-        cursor: 'pointer',
     },
 
     list: {
@@ -87,7 +78,7 @@ export default theme => ({
         },
     },
 
-    thumbsup: { },
+    thumbsup: {},
 
     nestest: {
         padding: 0,

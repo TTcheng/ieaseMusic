@@ -23,15 +23,6 @@ export default theme => ({
         },
     },
 
-    close: {
-        position: 'absolute',
-        height: 32,
-        top: 22,
-        right: 16,
-        cursor: 'pointer',
-        zIndex: 9,
-    },
-
     lyrics: {
         position: 'relative',
         width: '60vw',

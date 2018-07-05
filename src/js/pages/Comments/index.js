@@ -11,9 +11,9 @@ import helper from 'utils/helper';
 import ProgressImage from 'ui/ProgressImage';
 import Loader from 'ui/Loader';
 import Hero from 'components/Hero';
+import Header from 'components/Header';
 
 @inject(stores => ({
-    close: () => stores.comments.toggle(false),
     loading: stores.comments.loading,
     hotList: stores.comments.hotList,
     newestList: stores.comments.newestList,
@@ -46,7 +46,7 @@ class Comments extends Component {
     }
 
     renderNestest(list) {
-        var { classes, close } = this.props;
+        var { classes } = this.props;
 
         if (!list.length) {
             return false;
@@ -55,61 +55,81 @@ class Comments extends Component {
         return (
             <ul className={classes.nestest}>
                 {
-                    list.map((e, index) => {
-                        return (
-                            <li key={index}>
-                                <Link
-                                    onClick={close}
-                                    to={`/user/${e.user.userId}`}>
-                                    {e.user.nickname}
-                                </Link>
-                                ：
+                    list.map(
+                        (e, index) => {
+                            return (
+                                <li key={index}>
+                                    <Link
+                                        to={`/user/${e.user.userId}`}
+                                    >
+                                        {e.user.nickname}
+                                    </Link>
 
-                                <span>
-                                    {e.content}
-                                </span>
-                            </li>
-                        );
-                    })
+                                    ：
+
+                                    <span>
+                                        {e.content}
+                                    </span>
+                                </li>
+                            );
+                        }
+                    )
                 }
             </ul>
         );
     }
 
     renderComment(key, item) {
-        var { classes, thumbsup, close } = this.props;
+        var { classes, thumbsup } = this.props;
 
         return (
             <div
+                key={key}
                 className={classes.comment}
-                key={key}>
+            >
                 <Link
                     className="tooltip"
                     data-text={item.user.nickname}
-                    onClick={close}
-                    to={`/user/${item.user.userId}`}>
-                    <ProgressImage {...{
-                        height: 48,
-                        width: 48,
-                        src: item.user.avatarUrl,
-                    }} />
+                    to={`/user/${item.user.userId}`}
+                >
+                    <ProgressImage
+                        {...{
+                            height: 48,
+                            width: 48,
+                            src: item.user.avatarUrl,
+                        }}
+                    />
                 </Link>
 
                 <aside>
-                    <p>{item.content}</p>
+                    <p>
+                        {item.content}
+                    </p>
 
                     <div className={classes.meta}>
                         <span
-                            className={clazz('tooltip', classes.thumbsup, {
-                                [classes.liked]: item.liked,
-                            })}
+                            className={
+                                clazz(
+                                    'tooltip',
+                                    classes.thumbsup,
+                                    {
+                                        [classes.liked]: item.liked,
+                                    }
+                                )
+                            }
                             data-text={`${helper.humanNumber(item.likedCount)} liked`}
-                            onClick={ev => thumbsup(item.commentId, !item.liked)}>
+                            onClick={
+                                ev => thumbsup(item.commentId, !item.liked)
+                            }
+                        >
                             <i className="ion-thumbsup" />
                         </span>
 
-                        {moment(item.time).endOf('day').fromNow()}
+                        {
+                            moment(item.time).endOf('day').fromNow()
+                        }
                     </div>
+
                     {
                         this.renderNestest(item.beReplied)
                     }
@@ -119,19 +139,23 @@ class Comments extends Component {
     }
 
     renderHotList() {
-        return this.props.hotList.map((e, index) => {
-            return this.renderComment(index, e);
-        });
+        return this.props.hotList.map(
+            (e, index) => {
+                return this.renderComment(index, e);
+            }
+        );
     }
 
     renderNewestList() {
-        return this.props.newestList.map((e, index) => {
-            return this.renderComment(index, e);
-        });
+        return this.props.newestList.map(
+            (e, index) => {
+                return this.renderComment(index, e);
+            }
+        );
     }
 
     render() {
-        var { classes, loading, song, close } = this.props;
+        var { classes, loading, song } = this.props;
 
         if (loading || !song.id) {
             return <Loader show={true} />;
@@ -139,27 +163,35 @@ class Comments extends Component {
 
         return (
             <div className={classes.container}>
-                <img
-                    alt="Close"
-                    className={classes.close}
-                    onClick={close}
-                    src="assets/close.png" />
+                <Header
+                    transparent={true}
+                    showBack={true}
+                />
 
-                <Hero close={close} />
+                <Hero location={this.props.location} />
 
                 <aside
+                    ref="list"
                     className={classes.list}
                     onScroll={e => this.loadmore()}
-                    ref="list">
+                >
                     <div className={classes.scroller}>
                         <div className={classes.hotList}>
-                            <h3>Hot Comments</h3>
-                            {this.renderHotList()}
+                            <h3>
+                                Hot Comments
+                            </h3>
+                            {
+                                this.renderHotList()
+                            }
                         </div>
 
                         <div className={classes.newestList}>
-                            <h3>Newest Comments</h3>
-                            {this.renderNewestList()}
+                            <h3>
+                                Newest Comments
+                            </h3>
+                            {
+                                this.renderNewestList()
+                            }
                         </div>
                     </div>
                 </aside>
