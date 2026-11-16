@@ -9,7 +9,7 @@
  * 只能从 audioSpec.path 的文件名反解，所以这里做了兜底。
  */
 
-const PREFERRED = {
+export const PREFERRED = {
     flac: 100,
     'flac/hires': 90,
     m4a: 70,

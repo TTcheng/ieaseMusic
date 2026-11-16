@@ -300,14 +300,6 @@ class Preferences extends Component {
                                 id="enginerOfBaidu"
                                 onChange={e => this.setEnginers({ 'Baidu': e.target.checked })} />
                         </label>
-                        <label htmlFor="enginerOfFnos">
-                            <h4>飞牛音乐（NAS 曲库）</h4>
-
-                            <Switch
-                                defaultChecked={enginers['Fnos']}
-                                id="enginerOfFnos"
-                                onChange={e => this.setEnginers({ 'Fnos': e.target.checked })} />
-                        </label>
                     </article>
 
                     <article>
@@ -315,6 +307,17 @@ class Preferences extends Component {
                             飞牛音乐（fnOS）
                             <small>用 NAS 上的「飞牛音乐」曲库作为音源</small>
                         </h3>
+                        <label htmlFor="enginerOfFnos">
+                            <div>
+                                <h4>启用飞牛音源</h4>
+                                <p>开启后优先从 NAS 曲库找歌，命中即播本地文件（支持 FLAC）</p>
+                            </div>
+
+                            <Switch
+                                defaultChecked={enginers['Fnos']}
+                                id="enginerOfFnos"
+                                onChange={e => this.setEnginers({ 'Fnos': e.target.checked })} />
+                        </label>
                         <div className={classes.field}>
                             <span>服务地址</span>
                             <input

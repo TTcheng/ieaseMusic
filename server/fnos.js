@@ -17,7 +17,7 @@
 import crypto from 'crypto';
 import http from 'http';
 import https from 'https';
-import { URLSearchParams } from 'url';
+import { URL, URLSearchParams } from 'url';
 
 const API_SECRET = 'REMOVED_SECRET';
 const API_KEY = 'REMOVED_KEY';
@@ -99,6 +99,21 @@ function headersOf(pathname, method, params, body, token, accept) {
 }
 
 /**
+ * 把 URL 拆成 http.request 认识的 options。
+ */
+function parseUrl(url) {
+    var parsed = new URL(url);
+
+    return {
+        protocol: parsed.protocol,
+        hostname: parsed.hostname,
+        port: parsed.port || undefined,
+        path: `${parsed.pathname}${parsed.search}`,
+        href: url,
+    };
+}
+
+/**
  * 发一个 JSON 请求，返回 { status, data, raw, headers }。
  * data 为已解信封的 data 字段；非 JSON 响应时为原始字符串。
  *
@@ -111,12 +126,20 @@ function request(base, pathname, options = {}) {
     var transport = url.startsWith('https:') ? https : http;
 
     return new Promise((resolve, reject) => {
-        var req = transport.request(url, {
+        // 注意：只能传两个参数。
+        // agent-base 的 patch-core.js 会把 https.request 换成
+        // function(_options, cb) 的两参版本（用来判断是否 https），
+        // 传第三个参数时它会被当成 cb，最终报
+        // "The listener argument must be of type function"。
+        // 所以把 url 拆进 options，整体传。
+        var reqOptions = Object.assign(parseUrl(url), {
             method,
             headers: headersOf(pathname, method, params, body, token),
             rejectUnauthorized: !insecure,
             timeout: 15000,
-        }, res => {
+        });
+
+        var req = transport.request(reqOptions, res => {
             var chunks = [];
 
             res.on('data', chunk => chunks.push(chunk));
@@ -176,12 +199,14 @@ function openStream(base, pathname, options = {}) {
             headers.Range = range;
         }
 
-        var req = transport.request(url, {
+        var reqOptions = Object.assign(parseUrl(url), {
             method: 'GET',
             headers,
             rejectUnauthorized: !insecure,
             timeout: 20000,
-        }, res => {
+        });
+
+        var req = transport.request(reqOptions, res => {
             if (res.statusCode === 401) {
                 res.resume();
                 var unauthorized = Error(`fnOS unauthorized: ${pathname}`);

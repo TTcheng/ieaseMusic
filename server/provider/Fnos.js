@@ -213,6 +213,7 @@ export default async(request, keyword, artists, idOrFlac) => {
 
         return song;
     } catch (ex) {
+        error('Fnos provider failed: %s', ex && ex.message ? ex.message : ex);
         return Promise.reject(ex);
     }
 };
