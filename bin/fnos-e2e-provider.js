@@ -79,8 +79,8 @@ async function main() {
             },
             fnos: {
                 base: 'https://nas:5667',
-                username: process.env.FNOS_USER || "",
-                password: process.env.FNOS_PASS || "",
+                username: process.env.FNOS_USER || '',
+                password: process.env.FNOS_PASS || '',
                 insecure: true,
             },
         },

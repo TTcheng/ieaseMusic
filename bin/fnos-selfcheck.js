@@ -13,8 +13,8 @@ import fnos from '../server/fnos';
 import { pick, describe } from '../server/provider/fnos-match';
 
 const BASE = 'https://nas:5667';
-const USER = process.env.FNOS_USER || "";
-const PASS = process.env.FNOS_PASS || "";
+const USER = process.env.FNOS_USER || '';
+const PASS = process.env.FNOS_PASS || '';
 
 async function main() {
     const token = await fnos.login(BASE, USER, PASS, {

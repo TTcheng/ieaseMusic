@@ -332,7 +332,7 @@ class Preferences extends Component {
                                 className={classes.textInput}
                                 defaultValue={fnos.base}
                                 onBlur={ev => this.saveFnos()}
-                                placeholder="https://192.168.1.10:5667"
+                                placeholder="https://nas:5667"
                                 ref={ele => (this.fnosBase = ele)}
                                 type="text" />
                         </div>

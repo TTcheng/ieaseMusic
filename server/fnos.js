@@ -6,12 +6,23 @@
  * (/var/apps/trim.music/target/static/assets/*.js)：
  *   - 网关前缀   {origin}/music/api/v1
  *   - 认证       Cookie: music-token={userToken}
- *   - 签名       authx: nonce={6位}&timestamp={毫秒}&sign={md5}
- *     sign = md5(SECRET + "_" + pathname + "_" + nonce + "_" + timestamp + "_" + bodyHash + "_" + KEY)
- *     bodyHash(GET)  = md5(decodeURIComponent(排序后的 query string))
- *     bodyHash(POST) = md5(JSON.stringify(body))
+ *   - 登录       POST /user/password-login，密码传 sha256
  *
- * 本文件只依赖 node 内置模块 + debug，方便离线自检（bin/fnos-check.js）。
+ * 关于官方前端那套 authx 签名：
+ *   官方 bundle 会给每个请求加一个 authx 头，形如
+ *     authx: nonce={6位}&timestamp={毫秒}&sign={md5}
+ *   签名用两个写死在 bundle 里的常量拼 md5 算出来。
+ *
+ *   但实测服务端根本不校验它 —— 带有效 music-token 时，
+ *   正确签名 / 错误签名 / 空签名 / 完全不带 authx 头，
+ *   返回结果完全一致，连写端点（POST /playlist/create）也一样。
+ *   那两个常量在官方 bundle 里是明文可见的（浏览器打开飞牛音乐就能读到），
+ *   本质上是装饰。
+ *
+ *   所以这里不实现签名，只保留真正起作用的 music-token 鉴权。
+ *   如果将来 fnOS 真的开始校验签名，再照上面那段补回来即可。
+ *
+ * 本文件只依赖 node 内置模块，方便离线自检（bin/fnos-check.js）。
  */
 
 import crypto from 'crypto';
@@ -19,53 +30,7 @@ import http from 'http';
 import https from 'https';
 import { URL, URLSearchParams } from 'url';
 
-const API_SECRET = 'REMOVED_SECRET';
-const API_KEY = 'REMOVED_KEY';
-
-const md5 = value => crypto.createHash('md5').update(String(value), 'utf8').digest('hex');
 const sha256 = value => crypto.createHash('sha256').update(String(value), 'utf8').digest('hex');
-
-/**
- * 与官方前端一致的 query 规范化：按键名排序，空格转 %20。
- */
-function canonicalQuery(params) {
-    var search = new URLSearchParams();
-
-    Object.keys(params || {}).sort().forEach(key => {
-        if (params[key] !== undefined && params[key] !== null) {
-            search.append(key, String(params[key]));
-        }
-    });
-
-    return search.toString().replace(/\+/g, '%20');
-}
-
-/**
- * 生成 authx 请求头。
- *
- * nonce / timestamp 可注入，仅为让自检可复现。
- */
-function sign(pathname, method, params, body, options = {}) {
-    var source;
-
-    if (String(method).toUpperCase() === 'GET') {
-        var canonical = canonicalQuery(params);
-
-        try {
-            source = decodeURIComponent(canonical);
-        } catch (ex) {
-            source = canonical;
-        }
-    } else {
-        source = body === undefined || body === null ? '' : JSON.stringify(body);
-    }
-
-    var nonce = options.nonce || String(Math.floor(Math.random() * 9e5) + 1e5);
-    var timestamp = options.timestamp || String(Date.now());
-    var hash = md5([API_SECRET, pathname, nonce, timestamp, md5(source), API_KEY].join('_'));
-
-    return `nonce=${nonce}&timestamp=${timestamp}&sign=${hash}`;
-}
 
 function buildUrl(base, pathname, params) {
     var search = new URLSearchParams();
@@ -79,23 +44,6 @@ function buildUrl(base, pathname, params) {
     var query = search.toString();
 
     return `${String(base).replace(/\/+$/, '')}${pathname}${query ? `?${query}` : ''}`;
-}
-
-function headersOf(pathname, method, params, body, token, accept) {
-    var headers = {
-        Accept: accept || 'application/json',
-        authx: sign(pathname, method, params, body),
-    };
-
-    if (token) {
-        headers.Cookie = `music-token=${encodeURIComponent(token)}`;
-    }
-
-    if (body !== undefined && body !== null) {
-        headers['Content-Type'] = 'application/json';
-    }
-
-    return headers;
 }
 
 /**
@@ -134,7 +82,7 @@ function request(base, pathname, options = {}) {
         // 所以把 url 拆进 options，整体传。
         var reqOptions = Object.assign(parseUrl(url), {
             method,
-            headers: headersOf(pathname, method, params, body, token),
+            headers: headersOf(token),
             rejectUnauthorized: !insecure,
             timeout: 15000,
         });
@@ -183,6 +131,21 @@ function request(base, pathname, options = {}) {
 }
 
 /**
+ * 请求头。只有 Cookie 里的 music-token 是服务端真正校验的。
+ */
+function headersOf(token, accept) {
+    var headers = {
+        Accept: accept || 'application/json',
+    };
+
+    if (token) {
+        headers.Cookie = `music-token=${encodeURIComponent(token)}`;
+    }
+
+    return headers;
+}
+
+/**
  * 打开一个二进制流（音频），返回上游 IncomingMessage，由调用方 pipe。
  *
  * 只在 401 时抛错，其余状态码交由调用方判断（404 的 JSON 错误体也可能是业务错误）。
@@ -193,7 +156,7 @@ function openStream(base, pathname, options = {}) {
     var transport = url.startsWith('https:') ? https : http;
 
     return new Promise((resolve, reject) => {
-        var headers = headersOf(pathname, 'GET', params, null, token, '*/*');
+        var headers = headersOf(token, '*/*');
 
         if (range) {
             headers.Range = range;
@@ -270,13 +233,9 @@ async function login(base, username, password, options = {}) {
 }
 
 export default {
-    API_SECRET,
-    API_KEY,
-    md5,
     sha256,
-    canonicalQuery,
-    sign,
     buildUrl,
+    parseUrl,
     request,
     openStream,
     searchTracks,

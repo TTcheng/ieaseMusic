@@ -4,14 +4,13 @@
  *
  * 验证：
  *   1. 未登录时搜索返回 401（确认走的是正确的端点与鉴权路径）
- *   2. pick() 的匹配逻辑对真实 NAS 曲库命中的歌名有效
- *   3. 流代理在无 token 时返回 502 而不是崩溃
+ *   2. URL 拼装正确
  */
 
 import assert from 'assert';
 import fnos from '../server/fnos';
 
-const BASE = 'https://nas:5667';
+const BASE = process.env.FNOS_BASE || 'https://nas:5667';
 
 async function main() {
     // 1. 未登录 → 401
@@ -24,23 +23,14 @@ async function main() {
         console.log('✓ 未登录搜索返回 401（端点与鉴权路径正确）');
     }
 
-    // 2. 签名头存在且格式正确
-    var header = fnos.sign('/music/api/v1/search/track', 'GET', { q: '晴天' }, null);
-    var parsed = new URLSearchParams(header);
-
-    assert.ok(parsed.get('nonce'), '应有 nonce');
-    assert.ok(parsed.get('timestamp'), '应有 timestamp');
-    assert.ok(/^[0-9a-f]{32}$/.test(parsed.get('sign')), 'sign 应是 md5 hex');
-    console.log('✓ authx 头格式正确');
-
-    // 3. URL 拼装：base 去尾斜杠、query 编码
+    // 2. URL 拼装：base 去尾斜杠、query 编码
     assert.strictEqual(
-        fnos.buildUrl('https://x:5667/', '/music/api/v1/search/track', { q: '晴天', page: 1 }),
-        'https://x:5667/music/api/v1/search/track?q=%E6%99%B4%E5%A4%A9&page=1'
+        fnos.buildUrl('https://nas:5667/', '/music/api/v1/search/track', { q: '晴天', page: 1 }),
+        'https://nas:5667/music/api/v1/search/track?q=%E6%99%B4%E5%A4%A9&page=1'
     );
     console.log('✓ URL 拼装正确');
 
-    console.log('\n全部通过（真实取流需 fnOS 账号，见 bin/fnos-check.js <base> <user> <pass>）');
+    console.log('\n全部通过（真实取流需 fnOS 账号，见 bin/fnos-check.js）');
 }
 
 main().catch(ex => {
