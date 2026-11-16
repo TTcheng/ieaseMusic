@@ -293,7 +293,7 @@ class Welcome extends Component {
     }
 
     render() {
-        var { classes, controller, me, home } = this.props;
+        var { classes, controller, me, home, preferences } = this.props;
         var list = home.list;
         var logined = me.hasLogin();
         var hasRecommend = logined && list.length && list[1].size;
@@ -350,6 +350,20 @@ class Welcome extends Component {
                                 >
                                     Made For You
                                 </Link>
+                            </p>
+
+                            <p>
+                                <a
+                                    href="#"
+                                    onClick={
+                                        e => {
+                                            e.preventDefault();
+                                            preferences.show = true;
+                                        }
+                                    }
+                                >
+                                    Preferences
+                                </a>
                             </p>
                         </nav>
                     </aside>

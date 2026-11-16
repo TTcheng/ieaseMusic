@@ -15,6 +15,10 @@ import FadeImage from 'ui/FadeImage';
     profile: stores.me.profile,
     logout: stores.me.logout,
     close: () => stores.menu.toggle(false),
+    showPreferences: () => {
+        stores.menu.toggle(false);
+        stores.preferences.show = true;
+    },
 }))
 @observer
 class Menu extends Component {
@@ -76,7 +80,7 @@ class Menu extends Component {
     }
 
     render() {
-        var { classes, show, close } = this.props;
+        var { classes, show, close, showPreferences } = this.props;
 
         if (!show) {
             return false;
@@ -137,6 +141,17 @@ class Menu extends Component {
                                     to="/fm">
                                     Made For You
                                 </Link>
+                            </p>
+
+                            <p>
+                                <a
+                                    href=""
+                                    onClick={e => {
+                                        e.preventDefault();
+                                        showPreferences();
+                                    }}>
+                                    Preferences
+                                </a>
                             </p>
                         </div>
                     </div>

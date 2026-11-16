@@ -24,6 +24,7 @@ let tray;
 let mainWindow;
 let isOsx = _PLATFORM === 'darwin';
 let isLinux = _PLATFORM === 'linux';
+let isWindows = _PLATFORM === 'win32';
 
 let showMenuBarOnLinux = false;
 let revertTrayIcon = false;
@@ -45,7 +46,7 @@ let mainMenu = [
             },
             {
                 label: 'Preferences...',
-                accelerator: 'Cmd+,',
+                accelerator: 'CmdOrCtrl+,',
                 click() {
                     mainWindow.webContents.send('show-preferences');
                 }
@@ -67,14 +68,14 @@ let mainMenu = [
             },
             {
                 label: 'Check for updates',
-                accelerator: 'Cmd+U',
+                accelerator: 'CmdOrCtrl+U',
                 click() {
                     updater.checkForUpdates();
                 }
             },
             {
                 label: 'Quit',
-                accelerator: 'Command+Q',
+                accelerator: 'CmdOrCtrl+Q',
                 selector: 'terminate:',
                 click() {
                     goodbye();
@@ -127,7 +128,7 @@ let mainMenu = [
             },
             {
                 label: 'Like',
-                accelerator: 'Cmd+L',
+                accelerator: 'CmdOrCtrl+L',
                 click() {
                     mainWindow.show();
                     mainWindow.webContents.send('player-like');
@@ -188,42 +189,42 @@ let mainMenu = [
         submenu: [
             {
                 label: 'Home',
-                accelerator: 'Cmd+Shift+H',
+                accelerator: 'CmdOrCtrl+Shift+H',
                 click() {
                     mainWindow.webContents.send('show-home');
                 }
             },
             {
                 label: 'Search',
-                accelerator: 'Cmd+F',
+                accelerator: 'CmdOrCtrl+F',
                 click() {
                     mainWindow.webContents.send('show-search');
                 }
             },
             {
                 label: 'Top podcasts',
-                accelerator: 'Cmd+Shift+T',
+                accelerator: 'CmdOrCtrl+Shift+T',
                 click() {
                     mainWindow.webContents.send('show-top');
                 }
             },
             {
                 label: 'Playlist',
-                accelerator: 'Cmd+Shift+P',
+                accelerator: 'CmdOrCtrl+Shift+P',
                 click() {
                     mainWindow.webContents.send('show-playlist');
                 }
             },
             {
                 label: 'Made For You',
-                accelerator: 'Cmd+Shift+F',
+                accelerator: 'CmdOrCtrl+Shift+F',
                 click() {
                     mainWindow.webContents.send('show-fm');
                 }
             },
             {
                 label: 'Downloads',
-                accelerator: 'Cmd+Shift+D',
+                accelerator: 'CmdOrCtrl+Shift+D',
                 click() {
                     downloader.showDownloader();
                 }
@@ -233,14 +234,14 @@ let mainMenu = [
             },
             {
                 label: 'Menu',
-                accelerator: 'Cmd+Shift+L',
+                accelerator: 'CmdOrCtrl+Shift+L',
                 click() {
                     mainWindow.webContents.send('show-menu');
                 }
             },
             {
                 label: 'Next Up',
-                accelerator: 'Cmd+P',
+                accelerator: 'CmdOrCtrl+P',
                 click() {
                     mainWindow.webContents.send('show-playing');
                 }
@@ -315,7 +316,7 @@ let trayMenu = [
     },
     {
         label: 'Preferences...',
-        accelerator: 'Cmd+,',
+        accelerator: 'CmdOrCtrl+,',
         click() {
             mainWindow.webContents.send('show-preferences');
         }
@@ -335,7 +336,7 @@ let trayMenu = [
     },
     {
         label: 'Check for updates',
-        accelerator: 'Cmd+U',
+        accelerator: 'CmdOrCtrl+U',
         click() {
             updater.checkForUpdates();
         }
@@ -351,7 +352,7 @@ let trayMenu = [
     },
     {
         label: 'Toggle DevTools',
-        accelerator: 'Alt+Command+I',
+        accelerator: 'Alt+CmdOrCtrl+I',
         click() {
             mainWindow.show();
             mainWindow.toggleDevTools();
@@ -362,7 +363,7 @@ let trayMenu = [
     },
     {
         label: 'Quit',
-        accelerator: 'Command+Q',
+        accelerator: 'CmdOrCtrl+Q',
         selector: 'terminate:',
         click() {
             goodbye();
@@ -396,7 +397,7 @@ let dockMenu = [
     },
     {
         label: 'Like',
-        accelerator: 'Cmd+L',
+        accelerator: 'CmdOrCtrl+L',
         click() {
             mainWindow.show();
             mainWindow.webContents.send('player-like');
@@ -405,7 +406,10 @@ let dockMenu = [
 ];
 
 function updateMenu(playing) {
-    if (!isOsx && !showMenuBarOnLinux) {
+    // macOS 永远有菜单栏；Windows/Linux 默认不显示，
+    // 但 Preferences 只能从菜单进入，所以非 macOS 一律装上菜单栏
+    // （Linux 另由 showMenuBarOnLinux 控制是否显示）。
+    if (!isOsx && !showMenuBarOnLinux && !isWindows) {
         return;
     }
 
@@ -535,7 +539,7 @@ const createMainWindow = () => {
         var submenu = args.songs.map((e, index) => {
             return {
                 label: e.name,
-                accelerator: `Cmd+${index}`,
+                accelerator: `CmdOrCtrl+${index}`,
                 click() {
                     mainWindow.show();
                     mainWindow.webContents.send('player-play', {
