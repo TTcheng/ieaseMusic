@@ -45,6 +45,18 @@ class VolumeUpDown extends Component {
     render() {
         var { classes, isMuted } = this.props;
 
+        var muted = (
+            <i
+                className="ion-ios-volume-low"
+                style={{
+                    fontSize: 32,
+                }} />
+        );
+
+        var normal = this.state.direction
+            ? <i className="ion-volume-medium" />
+            : <i className="ion-volume-low" />;
+
         return (
             <div
                 className={classes.container}
@@ -53,19 +65,7 @@ class VolumeUpDown extends Component {
                     ele => (this.container = ele)
                 }
             >
-                {
-                    isMuted()
-                        ? <i
-                            className="ion-ios-volume-low"
-                            style={{
-                                fontSize: 32,
-                            }} />
-                        : (
-                            this.state.direction
-                                ? <i className="ion-volume-medium" />
-                                : <i className="ion-volume-low" />
-                        )
-                }
+                {isMuted() ? muted : normal}
             </div>
         );
     }

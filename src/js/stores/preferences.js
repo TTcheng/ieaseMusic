@@ -36,9 +36,18 @@ class Preferences {
         'Kugou': false,
         'Baidu': true,
         'kuwo': true,
+        'Fnos': false,
     };
     @observable proxy = '';
     @observable downloads = path.join(remote.app.getPath('music'), pkg.name);
+
+    // 飞牛音乐（fnOS）连接信息
+    @observable fnos = {
+        base: '',
+        username: '',
+        password: '',
+        insecure: true,
+    };
 
     @action async init() {
         var preferences = await storage.get('preferences');
@@ -59,6 +68,7 @@ class Preferences {
             enginers = self.enginers,
             proxy = self.proxy,
             downloads = self.downloads,
+            fnos = self.fnos,
         } = preferences;
 
         self.showTray = !!showTray;
@@ -77,6 +87,7 @@ class Preferences {
         self.enginers = enginers;
         self.proxy = proxy;
         self.downloads = downloads;
+        self.fnos = Object.assign({}, self.fnos, fnos || {});
 
         // Save preferences
         self.save();
@@ -86,7 +97,7 @@ class Preferences {
     }
 
     @action async save() {
-        var { showTray, showMenuBarOnLinux, revertTrayIcon, alwaysOnTop, showNotification, autoPlay, port, volume, highquality, backgrounds, autoupdate, scrobble, lastfm, enginers, proxy, downloads } = self;
+        var { showTray, showMenuBarOnLinux, revertTrayIcon, alwaysOnTop, showNotification, autoPlay, port, volume, highquality, backgrounds, autoupdate, scrobble, lastfm, enginers, proxy, downloads, fnos } = self;
 
         await storage.set('preferences', {
             showTray,
@@ -105,6 +116,7 @@ class Preferences {
             enginers,
             proxy,
             downloads,
+            fnos,
         });
 
         ipcRenderer.send('update-preferences', {
@@ -197,6 +209,11 @@ class Preferences {
         }
 
         self.proxy = proxy;
+        self.save();
+    }
+
+    @action setFnos(fnos) {
+        self.fnos = Object.assign({}, self.fnos, fnos);
         self.save();
     }
 

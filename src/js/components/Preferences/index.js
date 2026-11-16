@@ -40,6 +40,18 @@ class Preferences extends Component {
         preferences.setEnginers(Object.assign({}, preferences.enginers, value));
     }
 
+    saveFnos(insecure) {
+        var { preferences } = this.props;
+        var el = document.getElementById('fnosInsecure');
+
+        preferences.setFnos({
+            base: this.fnosBase.value.trim(),
+            username: this.fnosUsername.value.trim(),
+            password: this.fnosPassword.value,
+            insecure: insecure === undefined ? (el ? el.checked : true) : insecure,
+        });
+    }
+
     isConnected() {
         var { username, password, connected } = this.props.preferences.lastfm;
 
@@ -83,8 +95,8 @@ class Preferences extends Component {
             setProxy,
             downloads,
             setDownloads,
+            fnos,
         } = preferences;
-
         return (
             <div className={classes.container}>
                 <section>
@@ -287,6 +299,65 @@ class Preferences extends Component {
                                 defaultChecked={enginers['Baidu']}
                                 id="enginerOfBaidu"
                                 onChange={e => this.setEnginers({ 'Baidu': e.target.checked })} />
+                        </label>
+                        <label htmlFor="enginerOfFnos">
+                            <h4>飞牛音乐（NAS 曲库）</h4>
+
+                            <Switch
+                                defaultChecked={enginers['Fnos']}
+                                id="enginerOfFnos"
+                                onChange={e => this.setEnginers({ 'Fnos': e.target.checked })} />
+                        </label>
+                    </article>
+
+                    <article>
+                        <h3>
+                            飞牛音乐（fnOS）
+                            <small>用 NAS 上的「飞牛音乐」曲库作为音源</small>
+                        </h3>
+                        <div className={classes.field}>
+                            <span>服务地址</span>
+                            <input
+                                className={classes.textInput}
+                                defaultValue={fnos.base}
+                                onBlur={ev => this.saveFnos()}
+                                placeholder="https://192.168.1.10:5667"
+                                ref={ele => (this.fnosBase = ele)}
+                                type="text" />
+                        </div>
+
+                        <div className={classes.field}>
+                            <span>用户名</span>
+                            <input
+                                className={classes.textInput}
+                                defaultValue={fnos.username}
+                                onBlur={ev => this.saveFnos()}
+                                placeholder="fnOS account"
+                                ref={ele => (this.fnosUsername = ele)}
+                                type="text" />
+                        </div>
+
+                        <div className={classes.field}>
+                            <span>密码</span>
+                            <input
+                                className={classes.textInput}
+                                defaultValue={fnos.password}
+                                onBlur={ev => this.saveFnos()}
+                                placeholder="fnOS password"
+                                ref={ele => (this.fnosPassword = ele)}
+                                type="password" />
+                        </div>
+
+                        <label htmlFor="fnosInsecure">
+                            <div>
+                                <h4>Ignore certificate errors</h4>
+                                <p>fnOS 默认使用自签名证书，开启后跳过证书校验</p>
+                            </div>
+
+                            <Switch
+                                defaultChecked={fnos.insecure}
+                                id="fnosInsecure"
+                                onChange={e => this.saveFnos(e.target.checked)} />
                         </label>
                     </article>
 

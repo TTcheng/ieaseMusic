@@ -33,7 +33,8 @@ class Offline extends Component {
             return (
                 <div className={classes.container}>
                     <h1>Opps, seems like you are offline...</h1>
-                </div>);
+                </div>
+            );
         }
     }
 }

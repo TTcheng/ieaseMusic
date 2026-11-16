@@ -8,6 +8,7 @@ import Kugou from './Kugou';
 import Baidu from './Baidu';
 import Xiami from './Xiami';
 import Kuwo from './Kuwo';
+import Fnos from './Fnos';
 import storage from '../../common/storage';
 import cache from '../../common/cache';
 
@@ -61,7 +62,7 @@ async function getFlac(keyword, artists, id) {
     try {
         var song = cache.get(id);
         if (!song) {
-            song = (await exe([QQ], keyword, artists, true)) || {};
+            song = (await exe([QQ, Fnos], keyword, artists, true)) || {};
             if (song.src) {
                 cache.set(id, song);
             }
@@ -106,6 +107,7 @@ async function getTrack(keyword, artists, id /** This id is only work for neteas
             'Xiami': false,
             'Kugou': false,
             'Baidu': true,
+            'Fnos': false,
         };
     }
 
@@ -150,6 +152,13 @@ async function getTrack(keyword, artists, id /** This id is only work for neteas
         if (enginers['Kuwo']) {
             plugins.push({
                 enginner: Kuwo,
+                proxy: true,
+            });
+        }
+
+        if (enginers['Fnos']) {
+            plugins.push({
+                enginner: Fnos,
                 proxy: true,
             });
         }
