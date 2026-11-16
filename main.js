@@ -24,9 +24,10 @@ let tray;
 let mainWindow;
 let isOsx = _PLATFORM === 'darwin';
 let isLinux = _PLATFORM === 'linux';
-let isWindows = _PLATFORM === 'win32';
 
-let showMenuBarOnLinux = false;
+// 菜单栏开关，统管 Linux 与 Windows。macOS 走系统惯例（永远有菜单栏），
+// 不受这个开关影响。
+let showMenuBar = false;
 let revertTrayIcon = false;
 
 // Shared data to other applocation via a unix socket file
@@ -405,11 +406,35 @@ let dockMenu = [
     },
 ];
 
+/**
+ * 按 showMenuBar 开关装卸菜单栏。
+ *
+ * macOS 始终有菜单栏（系统惯例），Linux 与 Windows 受开关控制。
+ * 关闭时把窗口菜单与应用菜单都摘掉，否则 Windows 标题栏下仍会留一条。
+ */
+function applyMenuBar() {
+    if (isOsx) {
+        updateMenu();
+        return;
+    }
+
+    if (showMenuBar) {
+        // updateMenu 内部会 setApplicationMenu，这里不要碰窗口菜单，
+        // 否则会把刚装上的菜单又摘掉。
+        updateMenu();
+        return;
+    }
+
+    if (mainWindow) {
+        mainWindow.setMenu(null);
+    }
+
+    Menu.setApplicationMenu(null);
+}
+
 function updateMenu(playing) {
-    // macOS 永远有菜单栏；Windows/Linux 默认不显示，
-    // 但 Preferences 只能从菜单进入，所以非 macOS 一律装上菜单栏
-    // （Linux 另由 showMenuBarOnLinux 控制是否显示）。
-    if (!isOsx && !showMenuBarOnLinux && !isWindows) {
+    // macOS 永远有菜单栏（系统惯例）；Linux 与 Windows 由 showMenuBar 统管。
+    if (!isOsx && !showMenuBar) {
         return;
     }
 
@@ -494,11 +519,10 @@ const createMainWindow = () => {
         mainWindow.setIcon(
             path.join(__dirname, 'src/assets/dock.png')
         );
-        // Disable default menu bar
-        if (!showMenuBarOnLinux) {
-            mainWindow.setMenu(null);
-        }
     }
+
+    // 菜单栏：macOS 始终有，Linux/Windows 由 showMenuBar 决定
+    applyMenuBar();
 
     mainWindowState.manage(mainWindow);
     mainWindow.loadURL(`file://${__dirname}/src/index.html`);
@@ -606,6 +630,12 @@ const createMainWindow = () => {
 
         revertTrayIcon = args.revertTrayIcon;
 
+        // 菜单栏开关立即生效，不必重启
+        if (args.showMenuBar !== undefined && args.showMenuBar !== showMenuBar) {
+            showMenuBar = !!args.showMenuBar;
+            applyMenuBar();
+        }
+
         if (!args.showTray) {
             if (tray) {
                 tray.destroy();
@@ -699,7 +729,7 @@ app.on('ready', async() => {
 
         var port = config.api.port || preferences.port;
 
-        showMenuBarOnLinux = preferences.showMenuBarOnLinux;
+        showMenuBar = !!preferences.showMenuBar;
         revertTrayIcon = preferences.revertTrayIcon;
 
         createMainWindow();

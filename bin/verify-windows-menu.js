@@ -1,14 +1,12 @@
 
 /**
- * 验证 Windows 上偏好设置确实有入口。
+ * 验证菜单栏开关在 Linux 与 Windows 上行为一致。
  *
- * 背景：Windows 上原本没有菜单栏（updateMenu 直接 return），
- * Preferences 只能从菜单进入 -> 用户完全找不到入口。
- *
- * 检查打包后的产物：
- *   1. 主进程里 updateMenu 的条件包含 Windows 分支
- *   2. accelerator 用的是 CmdOrCtrl（Cmd 在 Windows 上无效）
- *   3. 渲染层有可见的 Preferences 入口
+ * 约定：
+ *   - 统一用一个 showMenuBar 标识控制 Linux 与 Windows
+ *   - macOS 始终有菜单栏（系统惯例），不受开关影响
+ *   - 默认不展示菜单栏（showMenuBar = false）
+ *   - 开关切换后立即生效，不必重启
  *
  * 注意：webpack 会 mangle 变量名，所以只能按行为特征匹配，不能按变量名。
  */
@@ -29,31 +27,75 @@ const main = fs.existsSync(path.join(DIST, 'main.js'))
     ? fs.readFileSync(path.join(DIST, 'main.js'), 'utf8')
     : '';
 
-// 1. 菜单栏条件：形如 (A||B||C)&&...setApplicationMenu
-const menuCalls = main.match(/[A-Za-z_$][\w$]*\s*\|\|\s*[A-Za-z_$][\w$]*\s*\|\|\s*[A-Za-z_$][\w$]*\)?\s*&&\s*[^;]{0,120}setApplicationMenu/g);
+// 1. 旧的平台专用标识要彻底消失（不考虑老版本兼容）
+assert.ok(!main.includes('showMenuBarOnLinux'), '主进程不应再有 showMenuBarOnLinux');
+assert.ok(!renderer.includes('showMenuBarOnLinux'), '渲染层不应再有 showMenuBarOnLinux');
+console.log('✓ 旧标识 showMenuBarOnLinux 已完全移除');
 
-assert.ok(menuCalls && menuCalls.length, '未找到 updateMenu 的条件判断');
+// 2. 统一标识存在
+assert.ok(main.includes('showMenuBar'), '主进程应使用 showMenuBar');
+assert.ok(renderer.includes('showMenuBar'), '渲染层应使用 showMenuBar');
+console.log('✓ 统一使用 showMenuBar 标识');
+
+// 3. 默认关闭
+const storeSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'js', 'stores', 'preferences.js'), 'utf8');
+
 assert.ok(
-    menuCalls.some(call => call.split('&&')[0].split('||').length === 3),
-    `updateMenu 的条件应有三个分支（macOS / Linux 菜单开关 / Windows），实际: ${menuCalls[0]}`
+    /@observable showMenuBar\s*=\s*false/.test(storeSrc),
+    'showMenuBar 默认应为 false（默认不展示菜单栏）'
 );
-console.log('✓ updateMenu 的条件含 Windows 分支:', menuCalls[0].split('&&')[0]);
+console.log('✓ 默认不展示菜单栏');
 
-// 2. accelerator 不能用 Cmd（Windows 上 Cmd 不生效）
+// 4. macOS 不受开关影响（读源码，webpack 会 mangle 变量名）
+const mainSrc = fs.readFileSync(path.join(__dirname, '..', 'main.js'), 'utf8');
+const prefSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'js', 'stores', 'preferences.js'), 'utf8');
+const prefUiSrc = fs.readFileSync(path.join(__dirname, '..', 'src', 'js', 'components', 'Preferences', 'index.js'), 'utf8');
+
+assert.ok(
+    /if \(isOsx\) \{\s*updateMenu\(\);/.test(mainSrc),
+    'applyMenuBar 里 macOS 应无条件调用 updateMenu'
+);
+assert.ok(
+    /if \(!isOsx && !showMenuBar\) \{/.test(mainSrc),
+    'updateMenu 应受 showMenuBar 控制'
+);
+console.log('✓ macOS 始终有菜单栏，Linux/Windows 由 showMenuBar 控制');
+
+// 4b. macOS 上 UI 隐藏该开关
+assert.ok(
+    /isMacOS/.test(prefSrc),
+    'preferences store 应提供 isMacOS'
+);
+assert.ok(
+    /isMacOS\s*\?\s*false\s*:\s*\(/.test(prefUiSrc),
+    'UI 应在 macOS 上隐藏菜单栏开关'
+);
+console.log('✓ macOS 上菜单栏开关不可见');
+
+// 5. 开关切换后立即生效：update-preferences 要带上 showMenuBar
+assert.ok(
+    /showMenuBar/.test(renderer),
+    '渲染层应把 showMenuBar 传给主进程'
+);
+assert.ok(
+    /showMenuBar/.test(main) && /applyMenuBar/.test(main),
+    '主进程应处理 showMenuBar 变化'
+);
+console.log('✓ 开关切换立即生效（applyMenuBar）');
+
+// 6. accelerator 跨平台
 const cmdOnly = main.match(/accelerator:"Cmd\+[^"]*"/g);
 
 assert.strictEqual(cmdOnly, null, `仍有 Windows 上无效的 Cmd accelerator: ${cmdOnly}`);
-console.log('✓ 主进程 accelerator 全部改用 CmdOrCtrl');
-
 assert.ok(main.includes('accelerator:"CmdOrCtrl+,"'), 'Preferences 应有 CmdOrCtrl+, 快捷键');
-console.log('✓ Preferences 快捷键为 CmdOrCtrl+,');
+console.log('✓ accelerator 全部改用 CmdOrCtrl');
 
-// 3. 渲染层有可见入口
-assert.ok(renderer.includes('"Preferences"') || renderer.includes("'Preferences'"), '渲染层应有 Preferences 入口');
+// 7. 不显示菜单栏时仍能打开偏好设置
+assert.ok(renderer.includes('"Preferences"'), '渲染层应有 Preferences 入口');
 assert.ok(
     /preferences\.show\s*=\s*!0|show\s*=\s*!0/.test(renderer),
-    '应把 preferences.show 置为 true（mobx observable 编译后为 =!0）'
+    '应能直接打开偏好设置'
 );
-console.log('✓ 渲染层有可直接打开偏好设置的入口');
+console.log('✓ 菜单栏关闭时仍有可见的偏好设置入口');
 
-console.log('\nWindows 入口验证全部通过');
+console.log('\n菜单栏开关验证全部通过');

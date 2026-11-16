@@ -11,10 +11,14 @@ import theme from 'config/theme.js';
 import storage from 'common/storage';
 import lastfm from 'utils/lastfm';
 
+// macOS 走系统惯例（永远有菜单栏），所以菜单栏开关对它没有意义，UI 上要隐藏
+const isMacOS = remote.process.platform === 'darwin';
+
 class Preferences {
     @observable show = false;
     @observable showTray = false;
-    @observable showMenuBarOnLinux = false;
+    // 菜单栏开关，统管 Linux 与 Windows（macOS 始终有菜单栏）
+    @observable showMenuBar = false;
     @observable revertTrayIcon = false;
     @observable alwaysOnTop = false;
     @observable showNotification = true;
@@ -51,9 +55,10 @@ class Preferences {
 
     @action async init() {
         var preferences = await storage.get('preferences');
+
         var {
             showTray = self.showTray,
-            showMenuBarOnLinux = self.showMenuBarOnLinux,
+            showMenuBar = self.showMenuBar,
             revertTrayIcon = self.revertTrayIcon,
             alwaysOnTop = self.alwaysOnTop,
             showNotification = self.showNotification,
@@ -72,7 +77,7 @@ class Preferences {
         } = preferences;
 
         self.showTray = !!showTray;
-        self.showMenuBarOnLinux = !!showMenuBarOnLinux;
+        self.showMenuBar = !!showMenuBar;
         self.revertTrayIcon = !!revertTrayIcon;
         self.alwaysOnTop = !!alwaysOnTop;
         self.showNotification = !!showNotification;
@@ -97,11 +102,11 @@ class Preferences {
     }
 
     @action async save() {
-        var { showTray, showMenuBarOnLinux, revertTrayIcon, alwaysOnTop, showNotification, autoPlay, port, volume, highquality, backgrounds, autoupdate, scrobble, lastfm, enginers, proxy, downloads, fnos } = self;
+        var { showTray, showMenuBar, revertTrayIcon, alwaysOnTop, showNotification, autoPlay, port, volume, highquality, backgrounds, autoupdate, scrobble, lastfm, enginers, proxy, downloads, fnos } = self;
 
         await storage.set('preferences', {
             showTray,
-            showMenuBarOnLinux,
+            showMenuBar,
             revertTrayIcon,
             alwaysOnTop,
             showNotification,
@@ -124,7 +129,8 @@ class Preferences {
             showTray,
             alwaysOnTop,
             proxy,
-            revertTrayIcon
+            revertTrayIcon,
+            showMenuBar
         });
     }
 
@@ -133,8 +139,8 @@ class Preferences {
         self.save();
     }
 
-    @action setShowMenuBarOnLinux(showMenuBarOnLinux) {
-        self.showMenuBarOnLinux = showMenuBarOnLinux;
+    @action setShowMenuBar(showMenuBar) {
+        self.showMenuBar = showMenuBar;
         self.save();
     }
 
@@ -238,6 +244,11 @@ class Preferences {
     @action async setEnginers(enginers) {
         self.enginers = enginers;
         self.save();
+    }
+
+    // macOS 始终有菜单栏，这个开关对它无意义，UI 上不显示
+    get isMacOS() {
+        return isMacOS;
     }
 }
 

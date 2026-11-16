@@ -68,8 +68,9 @@ class Preferences extends Component {
         var {
             showTray,
             setShowTray,
-            showMenuBarOnLinux,
-            setShowMenuBarOnLinux,
+            showMenuBar,
+            setShowMenuBar,
+            isMacOS,
             revertTrayIcon,
             setRevertTrayIcon,
             alwaysOnTop,
@@ -125,17 +126,24 @@ class Preferences extends Component {
                                 onChange={e => setShowTray(e.target.checked)} />
                         </label>
 
-                        <label htmlFor="showMenuBarOnLinux">
-                            <div>
-                                <h4>Show menu bar on Linux</h4>
-                                <p>Only work on Linux. Restart needed.</p>
-                            </div>
+                        {
+                            // macOS 始终有菜单栏，这个开关对它没有意义
+                            isMacOS
+                                ? false
+                                : (
+                                    <label htmlFor="showMenuBar">
+                                        <div>
+                                            <h4>Show menu bar</h4>
+                                            <p>Windows 与 Linux 通用</p>
+                                        </div>
 
-                            <Switch
-                                defaultChecked={showMenuBarOnLinux}
-                                id="showMenuBarOnLinux"
-                                onChange={e => setShowMenuBarOnLinux(e.target.checked)} />
-                        </label>
+                                        <Switch
+                                            defaultChecked={showMenuBar}
+                                            id="showMenuBar"
+                                            onChange={e => setShowMenuBar(e.target.checked)} />
+                                    </label>
+                                )
+                        }
 
                         <label htmlFor="revertTrayIcon">
                             <div>
