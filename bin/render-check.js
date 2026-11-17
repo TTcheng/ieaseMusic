@@ -99,11 +99,14 @@ async function main() {
 
         html = render(Search, {}, '/search');
 
+        // fnOS 模式搜曲库：歌曲 / 专辑 / 歌手，没有歌单和用户
         assert.ok(html.includes('>Song<'), 'fnos 模式应显示 Song tab');
-        for (const tab of ['Playlist', 'Album', 'Singer', 'User']) {
+        assert.ok(html.includes('>Album<'), 'fnos 模式应显示 Album tab');
+        assert.ok(html.includes('>Singer<'), 'fnos 模式应显示 Singer tab');
+        for (const tab of ['Playlist', 'User']) {
             assert.ok(!html.includes(`>${tab}<`), `fnos 模式不应出现 ${tab} tab`);
         }
-        console.log('✓ 只显示 Song tab，其余 tab 已隐藏');
+        console.log('✓ 显示 Song / Album / Singer 三个 tab，歌单与用户已隐藏');
 
         // ---- 3. Welcome：netease 模式 ----
         console.log('\n=== Welcome / netease 模式 ===');

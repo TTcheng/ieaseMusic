@@ -17,6 +17,7 @@ import preferences from './preferences';
 import upnext from './upnext';
 import share from './share';
 import source from './source';
+import fnos from './fnos';
 
 const stores = {
     me,
@@ -37,6 +38,7 @@ const stores = {
     upnext,
     share,
     source,
+    fnos,
 };
 
 export default stores;

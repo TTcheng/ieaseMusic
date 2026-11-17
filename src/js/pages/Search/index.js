@@ -29,6 +29,8 @@ import Header from 'components/Header';
     tracks: stores.search.tracks,
     getTracks: stores.search.getTracks,
     loadmoreTracks: stores.search.loadmoreTracks,
+    loadmoreFnosAlbums: stores.search.loadmoreFnosAlbums,
+    loadmoreFnosArtists: stores.search.loadmoreFnosArtists,
     isFnos: stores.source.isFnos,
     play: stores.controller.play,
     setup: stores.controller.setup,
@@ -38,11 +40,11 @@ class Search extends Component {
     constructor(props) {
         super(props);
 
-        // fnOS 模式只搜曲库歌曲
+        // fnOS 模式搜曲库：歌曲 / 专辑 / 歌手
         if (props.isFnos()) {
             this.state = {
                 renderContent: this.renderTracks.bind(this),
-                search: props.getTracks,
+                search: keyword => props.getTracks(keyword, 'track'),
                 loadmore: props.loadmoreTracks,
             };
         } else {
@@ -58,7 +60,7 @@ class Search extends Component {
         if (this.props.isFnos()) {
             this.setState({
                 renderContent: this.renderTracks.bind(this),
-                search: this.props.getTracks,
+                search: keyword => this.props.getTracks(keyword, 'track'),
                 loadmore: this.props.loadmoreTracks,
             });
 
@@ -124,6 +126,92 @@ class Search extends Component {
                         </span>
                     </aside>
                 </div>
+            );
+        });
+    }
+
+    /**
+     * fnOS 模式：渲染 NAS 曲库里的专辑。
+     */
+    renderFnosAlbums() {
+        var { classes, albums } = this.props;
+
+        if (!albums.length) {
+            return (
+                <div className={classes.placeholder}>
+                    <span>Nothing ...</span>
+                </div>
+            );
+        }
+
+        return albums.map((e, index) => {
+            return (
+                <Link
+                    className={classes.row}
+                    key={e.guid || index}
+                    to={e.link}
+                >
+                    <ProgressImage {...{
+                        src: e.cover,
+                        height: 40,
+                        width: 40,
+                    }} />
+
+                    <aside>
+                        <span title={e.name}>
+                            {e.name}
+                        </span>
+
+                        <span>
+                            {e.artists.map(a => a.name).join(' / ')}
+                        </span>
+
+                        <span className={classes.tracks}>
+                            {e.size} Tracks
+                        </span>
+                    </aside>
+                </Link>
+            );
+        });
+    }
+
+    /**
+     * fnOS 模式：渲染 NAS 曲库里的歌手。
+     */
+    renderFnosArtists() {
+        var { classes, artists } = this.props;
+
+        if (!artists.length) {
+            return (
+                <div className={classes.placeholder}>
+                    <span>Nothing ...</span>
+                </div>
+            );
+        }
+
+        return artists.map((e, index) => {
+            return (
+                <Link
+                    className={classes.row}
+                    key={e.guid || index}
+                    to={e.link}
+                >
+                    <ProgressImage {...{
+                        src: e.cover,
+                        height: 40,
+                        width: 40,
+                    }} />
+
+                    <aside>
+                        <span title={e.name}>
+                            {e.name}
+                        </span>
+
+                        <span className={classes.tracks}>
+                            {e.size} Tracks
+                        </span>
+                    </aside>
+                </Link>
             );
         });
     }
@@ -386,18 +474,36 @@ class Search extends Component {
 
                     <nav>
                         {
-                            // fnOS 模式只有曲库歌曲可搜，其余 tab 不适用
+                            // fnOS 模式搜曲库：歌曲 / 专辑 / 歌手
                             this.props.isFnos()
                                 ? (
-                                    <span
-                                        className={classes.selected}
-                                        onClick={e => this.selected(e.target, {
-                                            search: this.props.getTracks,
-                                            loadmore: this.props.loadmoreTracks,
-                                            renderContent: () => this.renderTracks(),
-                                        })}>
-                                        Song
-                                    </span>
+                                    <React.Fragment>
+                                        <span
+                                            className={classes.selected}
+                                            onClick={e => this.selected(e.target, {
+                                                search: keyword => this.props.getTracks(keyword, 'track'),
+                                                loadmore: this.props.loadmoreTracks,
+                                                renderContent: () => this.renderTracks(),
+                                            })}>
+                                            Song
+                                        </span>
+                                        <span
+                                            onClick={e => this.selected(e.target, {
+                                                search: keyword => this.props.getTracks(keyword, 'album'),
+                                                loadmore: this.props.loadmoreFnosAlbums,
+                                                renderContent: () => this.renderFnosAlbums(),
+                                            })}>
+                                            Album
+                                        </span>
+                                        <span
+                                            onClick={e => this.selected(e.target, {
+                                                search: keyword => this.props.getTracks(keyword, 'artist'),
+                                                loadmore: this.props.loadmoreFnosArtists,
+                                                renderContent: () => this.renderFnosArtists(),
+                                            })}>
+                                            Singer
+                                        </span>
+                                    </React.Fragment>
                                 )
                                 : (
                                     <React.Fragment>

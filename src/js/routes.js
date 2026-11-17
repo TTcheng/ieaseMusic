@@ -16,6 +16,8 @@ import Lyrics from './pages/Lyrics';
 import Search from './pages/Search';
 import Source from './pages/Login/Source';
 import Fnos from './pages/Login/Fnos';
+import FnosAlbum from './pages/Fnos/Album';
+import FnosArtist from './pages/Fnos/Artist';
 import { Legacy as LoginByLegacy, QRCode as LoginByQrCode } from './pages/Login';
 import stores from 'stores';
 
@@ -37,6 +39,26 @@ function requireAuth(component, props) {
     }
 
     return <Redirect to="/login" />;
+}
+
+/**
+ * fnOS 专属页面（专辑/艺术家）。
+ *
+ * 这些页面只在 fnOS 音源下有内容，其他音源访问直接回首页。
+ */
+function requireFnos(component, props) {
+    if (stores.source.isFnos() && stores.me.hasLogin()) {
+        return (
+            React.createElement(
+                component,
+                {
+                    ...props,
+                }
+            )
+        );
+    }
+
+    return <Redirect to="/" />;
 }
 
 const Main = withRouter(props => <Layout {...props} />);
@@ -95,6 +117,15 @@ export default () => {
                     exact
                     path="/fm"
                     render={props => requireAuth(FM, props)} />
+
+                <Route
+                    exact
+                    path="/fnos/album/:guid"
+                    render={props => requireFnos(FnosAlbum, props)} />
+                <Route
+                    exact
+                    path="/fnos/artist/:guid"
+                    render={props => requireFnos(FnosArtist, props)} />
             </Switch>
         </Main>
         /* eslint-enable */
