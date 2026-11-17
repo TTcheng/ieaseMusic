@@ -10,6 +10,7 @@ import classes from './classes';
 @inject(stores => ({
     login: stores.me.login,
     logining: stores.me.logining,
+    setSource: stores.source.setSource,
 }))
 @observer
 class Legacy extends Component {
@@ -36,7 +37,8 @@ class Legacy extends Component {
 
         if (await this.props.login(phone, password)) {
             // Login success
-            this.props.history.replace(+this.props.match.params.fm ? '/fm' : '/');
+            await this.props.setSource('netease');
+            this.props.history.replace('/');
             return;
         }
 
@@ -61,10 +63,10 @@ class Legacy extends Component {
             <div className={classes.container}>
                 <Link
                     className={classes.back}
-                    to="/"
+                    to="/login"
                 >
                     <i className="ion-android-arrow-back" />
-                    Discover music
+                    Change source
                 </Link>
 
                 <header>
@@ -114,14 +116,14 @@ class Legacy extends Component {
 
                     <div className={classes.sns}>
                         <Link
-                            to={`/login/qrcode/10/${+this.props.match.params.fm}`}
+                            to="/login/qrcode/10"
                             className={classes.link}
                         >
                             Login with WeChat
                         </Link>
 
                         <Link
-                            to={`/login/qrcode/2/${+this.props.match.params.fm}`}
+                            to="/login/qrcode/2"
                             className={classes.link}
                         >
                             Login with Weibo

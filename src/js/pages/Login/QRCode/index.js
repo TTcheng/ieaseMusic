@@ -7,16 +7,17 @@ import injectSheet from 'react-jss';
 import classes from './classes';
 import FadeImage from 'ui/FadeImage';
 
-@inject('me')
+@inject('me', 'source')
 @observer
 class QRCode extends Component {
     async pleaseLogin() {
-        var { fm, type } = this.props.match.params;
+        var { type } = this.props.match.params;
 
         await this.props.me.generate(+type);
         this.props.me.waiting(
-            () => {
-                this.props.history.replace(+fm ? '/fm' : '/');
+            async() => {
+                await this.props.source.setSource('netease');
+                this.props.history.replace('/');
             }
         );
     }
@@ -48,7 +49,7 @@ class QRCode extends Component {
             <div className={classes.container}>
                 <Link
                     className={classes.back}
-                    to={`/login/${+this.props.match.params.fm}`}
+                    to="/login/netease"
                 >
                     <i className="ion-android-arrow-back" />
                     Login by Phone
