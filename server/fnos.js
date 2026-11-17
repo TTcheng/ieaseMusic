@@ -232,6 +232,33 @@ async function login(base, username, password, options = {}) {
     return data.userToken;
 }
 
+/**
+ * 密码登录，取回 userToken 与用户信息。
+ */
+async function loginWithUser(base, username, password, options = {}) {
+    var { insecure, deviceId } = options;
+    var response = await request(base, '/music/api/v1/user/password-login', {
+        method: 'POST',
+        body: {
+            username,
+            password: sha256(password),
+            deviceId,
+        },
+        insecure,
+    });
+
+    var data = response.data || {};
+
+    if (!data.userToken) {
+        throw Error(`fnOS login failed: ${data.msg || response.status}`);
+    }
+
+    return {
+        token: data.userToken,
+        user: data.user || {},
+    };
+}
+
 export default {
     sha256,
     buildUrl,
@@ -240,4 +267,5 @@ export default {
     openStream,
     searchTracks,
     login,
+    loginWithUser,
 };

@@ -9,6 +9,9 @@ class Search {
     @observable artists = [];
     @observable users = [];
 
+    // fnOS 曲库里的歌曲
+    @observable tracks = [];
+
     /**
         Search type
 
@@ -26,6 +29,49 @@ class Search {
     nextHref4albums = '';
     nextHref4artists = '';
     nextHref4users = '';
+
+    // fnOS 搜索的翻页
+    page4tracks = 1;
+    total4tracks = 0;
+
+    // 最近一次搜索的关键词（fnOS 翻页用）
+    lastKeyword = '';
+
+    /**
+     * fnOS 模式：搜索 NAS 曲库。
+     */
+    @action async getTracks(keyword) {
+        self.loading = true;
+        self.lastKeyword = keyword;
+
+        var response = await axios.get('/api/fnos/search', {
+            params: { q: keyword, page: 1, size: 24 },
+        });
+
+        var data = response.data;
+
+        self.tracks = data.list || [];
+        self.total4tracks = data.total || 0;
+        self.page4tracks = 1;
+        self.loading = false;
+    }
+
+    @action async loadmoreTracks() {
+        var page = self.page4tracks + 1;
+
+        var response = await axios.get('/api/fnos/search', {
+            params: { q: self.lastKeyword, page, size: 24 },
+        });
+
+        var data = response.data;
+
+        if (!data.list || !data.list.length) {
+            return;
+        }
+
+        self.tracks.push(...data.list);
+        self.page4tracks = page;
+    }
 
     @action async getPlaylists(keyword) {
         self.loading = true;

@@ -83,6 +83,7 @@ function mount(proxy) {
     app.use('/api/comments', require('./router/comments'));
     app.use('/api/lyrics', cache('360 minutes'), require('./router/lyrics'));
     app.use('/api/qrcode', require('./router/qrcode'));
+    app.use('/api/fnos', require('./router/fnos'));
 }
 
 if (process.env.APIONLY) {

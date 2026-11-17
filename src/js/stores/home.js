@@ -7,6 +7,7 @@ import helper from 'utils/helper';
 import me from './me';
 import preferences from './preferences';
 import controller from './controller';
+import source from './source';
 
 class Home {
     @observable loading = true;
@@ -23,7 +24,12 @@ class Home {
     @action async load() {
         var res;
 
-        if (me.hasLogin()) {
+        if (source.isFnos()) {
+            // fnOS 模式：首页来自 NAS 曲库
+            res = await axios.get('/api/fnos/home');
+
+            controller.setup(res.data.list[0]);
+        } else if (me.hasLogin()) {
             res = await axios.get(`/api/home/${me.profile.userId}`);
 
             let favorite = res.data.list[0];

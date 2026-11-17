@@ -34,7 +34,13 @@ const Status = injectSheet(classes)(
     }
 );
 
-@inject('me', 'controller', 'preferences', 'home')
+@inject(stores => ({
+    me: stores.me,
+    controller: stores.controller,
+    preferences: stores.preferences,
+    home: stores.home,
+    isFnos: stores.source.isFnos,
+}))
 @observer
 class Welcome extends Component {
     canitoggle(id) {
@@ -292,8 +298,66 @@ class Welcome extends Component {
         );
     }
 
+    /**
+     * fnOS 模式：渲染 NAS 曲库里的曲目。
+     *
+     * fnOS 模式没有「歌单/专辑/歌手」页面，首页直接列可播的曲目。
+     */
+    renderFnosTracks(list = []) {
+        var { classes } = this.props;
+
+        if (!list.length) {
+            return (
+                <div className={classes.placeholder}>
+                    <span>Nothing ...</span>
+                </div>
+            );
+        }
+
+        return list.map((e, index) => {
+            return (
+                <div
+                    className={classes.item}
+                    key={e.guid || index}
+                    onClick={() => this.playTrack(e)}
+                >
+                    <figure className={classes.recommend}>
+                        <figcaption>
+                            <ProgressImage {...{
+                                src: e.album.cover,
+                                height: 50,
+                                width: 50,
+                            }} />
+
+                            <summary>
+                                <p>
+                                    {e.name}
+                                </p>
+
+                                <small>
+                                    {e.artists.map(a => a.name).join(' / ')}
+                                </small>
+                            </summary>
+                        </figcaption>
+                    </figure>
+                </div>
+            );
+        });
+    }
+
+    playTrack(song) {
+        var { controller } = this.props;
+
+        controller.setup({
+            id: `FNOS_${song.guid}`,
+            songs: [song],
+        });
+
+        controller.play(song.guid);
+    }
+
     render() {
-        var { classes, controller, me, home, preferences } = this.props;
+        var { classes, controller, me, home, preferences, isFnos } = this.props;
         var list = home.list;
         var logined = me.hasLogin();
         var hasRecommend = logined && list.length && list[1].size;
@@ -305,19 +369,10 @@ class Welcome extends Component {
                 <main>
                     <aside className={classes.navs}>
                         {
+                            // 未登录会被路由守卫拦去登录页，这里只渲染已登录的样子
                             logined
                                 ? this.renderProfile()
-                                : (
-                                    <Link
-                                        to="/login/0"
-                                        style={{
-                                            fontSize: 14,
-                                            letterSpacing: 2,
-                                        }}
-                                    >
-                                        Sign in
-                                    </Link>
-                                )
+                                : false
                         }
 
                         <nav className={classes.menu}>
@@ -327,30 +382,40 @@ class Welcome extends Component {
                                 </Link>
                             </p>
 
-                            <p>
-                                <Link to="/playlist/全部">
-                                    Playlist
-                                </Link>
-                            </p>
+                            {
+                                // fnOS 模式只有本地曲库，
+                                // 歌单/榜单/推荐都依赖网易云，不适用
+                                isFnos
+                                    ? false
+                                    : (
+                                        <React.Fragment>
+                                            <p>
+                                                <Link to="/playlist/全部">
+                                                    Playlist
+                                                </Link>
+                                            </p>
 
-                            <p>
-                                <Link to="/top">
-                                    Top podcasts
-                                </Link>
-                            </p>
+                                            <p>
+                                                <Link to="/top">
+                                                    Top podcasts
+                                                </Link>
+                                            </p>
 
-                            <p>
-                                <Link
-                                    className={
-                                        clazz({
-                                            [classes.playing]: controller.playlist.id === 'PERSONAL_FM'
-                                        })
-                                    }
-                                    to="/fm"
-                                >
-                                    Made For You
-                                </Link>
-                            </p>
+                                            <p>
+                                                <Link
+                                                    className={
+                                                        clazz({
+                                                            [classes.playing]: controller.playlist.id === 'PERSONAL_FM'
+                                                        })
+                                                    }
+                                                    to="/fm"
+                                                >
+                                                    Made For You
+                                                </Link>
+                                            </p>
+                                        </React.Fragment>
+                                    )
+                            }
 
                             <p>
                                 <a
@@ -373,21 +438,29 @@ class Welcome extends Component {
                             ? (
                                 <section className={classes.list}>
                                     {
-                                        logined
-                                            ? this.renderFavorite(list[0])
-                                            : false
-                                    }
-                                    {
-                                        hasRecommend
-                                            ? this.renderRecommend(list[1])
-                                            : false
-                                    }
-                                    {
-                                        this.renderPlaylist(
-                                            logined
-                                                ? list.slice(2, list.length)
-                                                : list.slice()
-                                        )
+                                        isFnos
+                                            ? this.renderFnosTracks(list[0] && list[0].songs)
+                                            : (
+                                                <React.Fragment>
+                                                    {
+                                                        logined
+                                                            ? this.renderFavorite(list[0])
+                                                            : false
+                                                    }
+                                                    {
+                                                        hasRecommend
+                                                            ? this.renderRecommend(list[1])
+                                                            : false
+                                                    }
+                                                    {
+                                                        this.renderPlaylist(
+                                                            logined
+                                                                ? list.slice(2, list.length)
+                                                                : list.slice()
+                                                        )
+                                                    }
+                                                </React.Fragment>
+                                            )
                                     }
                                 </section>
                             )

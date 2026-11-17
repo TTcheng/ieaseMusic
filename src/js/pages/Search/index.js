@@ -26,16 +26,45 @@ import Header from 'components/Header';
     users: stores.search.users,
     getUsers: stores.search.getUsers,
     loadmoreUsers: stores.search.loadmoreUsers,
+    tracks: stores.search.tracks,
+    getTracks: stores.search.getTracks,
+    loadmoreTracks: stores.search.loadmoreTracks,
+    isFnos: stores.source.isFnos,
+    play: stores.controller.play,
+    setup: stores.controller.setup,
 }))
 @observer
 class Search extends Component {
-    state = {
-        renderContent: this.renderPlaylist.bind(this),
-        search: this.props.getPlaylists,
-        loadmore: this.props.loadmorePlaylists,
-    };
+    constructor(props) {
+        super(props);
+
+        // fnOS 模式只搜曲库歌曲
+        if (props.isFnos()) {
+            this.state = {
+                renderContent: this.renderTracks.bind(this),
+                search: props.getTracks,
+                loadmore: props.loadmoreTracks,
+            };
+        } else {
+            this.state = {
+                renderContent: this.renderPlaylist.bind(this),
+                search: props.getPlaylists,
+                loadmore: props.loadmorePlaylists,
+            };
+        }
+    }
 
     reset() {
+        if (this.props.isFnos()) {
+            this.setState({
+                renderContent: this.renderTracks.bind(this),
+                search: this.props.getTracks,
+                loadmore: this.props.loadmoreTracks,
+            });
+
+            return;
+        }
+
         this.setState({
             renderContent: this.renderPlaylist.bind(this),
             search: this.props.getPlaylists,
@@ -50,6 +79,64 @@ class Search extends Component {
         var keyword = e.target.value.trim();
 
         this.state.search(keyword);
+    }
+
+    /**
+     * fnOS 模式：渲染 NAS 曲库里的歌曲。
+     *
+     * 点一首直接播 —— fnOS 模式没有「歌单」概念。
+     */
+    renderTracks() {
+        var { classes, tracks } = this.props;
+
+        if (tracks.length === 0) {
+            return (
+                <div className={classes.placeholder}>
+                    <span>Nothing ...</span>
+                </div>
+            );
+        }
+
+        return tracks.map((e, index) => {
+            return (
+                <div
+                    className={classes.row}
+                    key={e.guid || index}
+                    onClick={() => this.playTrack(e)}
+                >
+                    <ProgressImage {...{
+                        src: e.album.cover,
+                        height: 40,
+                        width: 40,
+                    }} />
+
+                    <aside>
+                        <span title={e.name}>
+                            {e.name}
+                        </span>
+
+                        <span>
+                            {e.artists.map(a => a.name).join(' / ')}
+                        </span>
+
+                        <span className={classes.tracks}>
+                            {helper.getTime(e.duration)}
+                        </span>
+                    </aside>
+                </div>
+            );
+        });
+    }
+
+    playTrack(song) {
+        var { setup, play } = this.props;
+
+        setup({
+            id: `FNOS_${song.guid}`,
+            songs: [song],
+        });
+
+        play(song.guid);
     }
 
     renderPlaylist() {
@@ -298,39 +385,58 @@ class Search extends Component {
                     </summary>
 
                     <nav>
-                        <span
-                            className={classes.selected}
-                            onClick={e => this.selected(e.target, {
-                                search: this.props.getPlaylists,
-                                loadmore: this.props.loadmorePlaylists,
-                                renderContent: () => this.renderPlaylist(),
-                            })}>
-                            Playlist
-                        </span>
-                        <span
-                            onClick={e => this.selected(e.target, {
-                                search: this.props.getAlbums,
-                                loadmore: this.props.loadmoreAlbums,
-                                renderContent: () => this.renderAlbums(),
-                            })}>
-                            Album
-                        </span>
-                        <span
-                            onClick={e => this.selected(e.target, {
-                                search: this.props.getArtists,
-                                loadmore: this.props.loadmoreArtists,
-                                renderContent: () => this.renderArtists(),
-                            })}>
-                            Singer
-                        </span>
-                        <span
-                            onClick={e => this.selected(e.target, {
-                                search: this.props.getUsers,
-                                loadmore: this.props.loadmoreUsers,
-                                renderContent: () => this.renderUsers(),
-                            })}>
-                            User
-                        </span>
+                        {
+                            // fnOS 模式只有曲库歌曲可搜，其余 tab 不适用
+                            this.props.isFnos()
+                                ? (
+                                    <span
+                                        className={classes.selected}
+                                        onClick={e => this.selected(e.target, {
+                                            search: this.props.getTracks,
+                                            loadmore: this.props.loadmoreTracks,
+                                            renderContent: () => this.renderTracks(),
+                                        })}>
+                                        Song
+                                    </span>
+                                )
+                                : (
+                                    <React.Fragment>
+                                        <span
+                                            className={classes.selected}
+                                            onClick={e => this.selected(e.target, {
+                                                search: this.props.getPlaylists,
+                                                loadmore: this.props.loadmorePlaylists,
+                                                renderContent: () => this.renderPlaylist(),
+                                            })}>
+                                            Playlist
+                                        </span>
+                                        <span
+                                            onClick={e => this.selected(e.target, {
+                                                search: this.props.getAlbums,
+                                                loadmore: this.props.loadmoreAlbums,
+                                                renderContent: () => this.renderAlbums(),
+                                            })}>
+                                            Album
+                                        </span>
+                                        <span
+                                            onClick={e => this.selected(e.target, {
+                                                search: this.props.getArtists,
+                                                loadmore: this.props.loadmoreArtists,
+                                                renderContent: () => this.renderArtists(),
+                                            })}>
+                                            Singer
+                                        </span>
+                                        <span
+                                            onClick={e => this.selected(e.target, {
+                                                search: this.props.getUsers,
+                                                loadmore: this.props.loadmoreUsers,
+                                                renderContent: () => this.renderUsers(),
+                                            })}>
+                                            User
+                                        </span>
+                                    </React.Fragment>
+                                )
+                        }
                     </nav>
 
                     <section
