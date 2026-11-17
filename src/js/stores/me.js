@@ -4,6 +4,7 @@ import axios from 'axios';
 
 import player from './player';
 import home from './home';
+import source from './source';
 import storage from 'common/storage';
 import helper from 'utils/helper';
 import lastfm from 'utils/lastfm';
@@ -28,6 +29,16 @@ class Me {
     @observable likes = new Map();
 
     @action async init() {
+        // 音源先初始化，决定该读哪份登录态
+        await source.init();
+
+        if (source.isFnos()) {
+            // fnOS 音源的登录态由 source store 管理
+            self.profile = {};
+            self.initialized = true;
+            return;
+        }
+
         var profile = await storage.get('profile');
 
         if (!profile) {
@@ -123,7 +134,13 @@ class Me {
     }
 
     @action async logout() {
-        await storage.remove('profile');
+        if (source.isFnos()) {
+            await source.clearLogin();
+        } else {
+            await storage.remove('profile');
+        }
+
+        self.profile = {};
     }
 
     @action rocking(likes) {
@@ -204,7 +221,18 @@ class Me {
         return response.data.code === 200;
     }
 
+    /**
+     * 是否已登录。
+     *
+     * 单一音源模式：只认当前音源的登录态。
+     */
     hasLogin() {
+        if (source.isFnos()) {
+            var conf = source.fnosProfile;
+
+            return Boolean(conf.base && conf.username && conf.password);
+        }
+
         return !!self.profile.userId;
     }
 }

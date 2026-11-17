@@ -16,6 +16,7 @@ import lyrics from './lyrics';
 import preferences from './preferences';
 import upnext from './upnext';
 import share from './share';
+import source from './source';
 
 const stores = {
     me,
@@ -35,6 +36,7 @@ const stores = {
     preferences,
     upnext,
     share,
+    source,
 };
 
 export default stores;
