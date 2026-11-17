@@ -39,6 +39,7 @@ const Status = injectSheet(classes)(
     controller: stores.controller,
     preferences: stores.preferences,
     home: stores.home,
+    source: stores.source,
     isFnos: stores.source.isFnos,
 }))
 @observer
@@ -270,7 +271,27 @@ class Welcome extends Component {
     }
 
     renderProfile() {
-        var { classes, me: { profile } } = this.props;
+        var { classes, isFnos, source, me: { profile } } = this.props;
+
+        // fnOS 账号没有网易云那套 profile（userId/nickname/avatarUrl），
+        // 直接渲染 NAS 账号名，别拼 /user/undefined 这种死链。
+        if (isFnos()) {
+            var user = (source.fnosProfile && source.fnosProfile.user) || {};
+
+            return (
+                <article className={classes.profile}>
+                    <div className={classes.info}>
+                        <p title={user.name || 'NA'}>
+                            {user.name || 'NA'}
+                        </p>
+                        <span>
+                            飞牛音乐
+                        </span>
+                    </div>
+                </article>
+            );
+        }
+
         var link = `/user/${profile.userId}`;
 
         return (

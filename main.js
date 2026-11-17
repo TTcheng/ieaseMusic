@@ -1,6 +1,8 @@
 
+import fs from 'fs';
 import path from 'path';
-import { app, BrowserWindow, Menu, Tray, globalShortcut, ipcMain, shell, powerMonitor } from 'electron';
+
+import { app, BrowserWindow, Menu, Tray, globalShortcut, ipcMain, shell, powerMonitor, session } from 'electron';
 import windowStateKeeper from 'electron-window-state';
 import storage from 'electron-json-storage';
 import axios from 'axios';
@@ -721,6 +723,34 @@ app.on('before-quit', e => {
     app.exit(0);
     process.exit(0);
 });
+// fnOS 用的是自签名证书。封面是渲染进程直接 <img> 加载的，
+// subresource 不触发 certificate-error，必须在 session 级放行，
+// 否则封面全裂（音频走主进程代理，所以一直能播）。
+// 只放行已保存的 fnOS base 主机，其它站点仍走默认校验。
+function readFnosBase() {
+    try {
+        var conf = JSON.parse(fs.readFileSync(path.join(storage.getDataPath(), 'fnos-profile.json'), 'utf8'));
+
+        return String((conf && conf.base) || '').replace(/\/+$/, '');
+    } catch (ex) {
+        return '';
+    }
+}
+
+function trustFnosCertificate() {
+    session.defaultSession.setCertificateVerifyProc((request, done) => {
+        var host = '';
+
+        try {
+            host = new URL(readFnosBase()).hostname;
+        } catch (ex) {
+            host = '';
+        }
+
+        done(host && request.hostname === host ? 0 : -3);
+    });
+}
+
 app.on('ready', async() => {
     storage.get('preferences', (err, preferences = {}) => {
         if (err) {
@@ -738,6 +768,7 @@ app.on('ready', async() => {
         showMenuBar = !!preferences.showMenuBar;
         revertTrayIcon = preferences.revertTrayIcon;
 
+        trustFnosCertificate();
         createMainWindow();
         updater.checkForUpdates(preferences.autoupdate);
 

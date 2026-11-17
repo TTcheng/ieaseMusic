@@ -211,6 +211,43 @@ async function searchTracks(base, token, keyword, options = {}) {
 /**
  * 密码登录，取回 userToken。
  */
+
+/**
+ * 把 music-token 同步进 Chromium 的 cookie 罐。
+ *
+ * 渲染进程直接 <img src="https://nas:.../static/cover"> 加载封面，
+ * 没法自己带 token，不带就是 401，封面全裂。
+ * 登录后由主进程写一条 cookie，之后同主机的请求自动带上。
+ *
+ * 纯 Node 环境（bin/fnos-check.js 自检）没有 electron，直接跳过。
+ */
+async function syncTokenCookie(base, token) {
+    if (!token) {
+        return;
+    }
+
+    try {
+        var electron = require('electron');
+        var ses = electron.session || (electron.remote && electron.remote.session);
+
+        if (!ses || !ses.defaultSession) {
+            return;
+        }
+
+        // Electron 4 的 cookies API 是回调式的
+        await new Promise((resolve, reject) => {
+            ses.defaultSession.cookies.set({
+                url: base,
+                name: 'music-token',
+                value: token,
+                secure: /^https/i.test(base),
+            }, err => (err ? reject(err) : resolve()));
+        });
+    } catch (ex) {
+        // 自检 / 测试环境忽略
+    }
+}
+
 async function login(base, username, password, options = {}) {
     var { insecure, deviceId } = options;
     var response = await request(base, '/music/api/v1/user/password-login', {
@@ -228,6 +265,8 @@ async function login(base, username, password, options = {}) {
     if (!data.userToken) {
         throw Error(`fnOS login failed: ${data.msg || response.status}`);
     }
+
+    await syncTokenCookie(base, data.userToken);
 
     return data.userToken;
 }
@@ -252,6 +291,8 @@ async function loginWithUser(base, username, password, options = {}) {
     if (!data.userToken) {
         throw Error(`fnOS login failed: ${data.msg || response.status}`);
     }
+
+    await syncTokenCookie(base, data.userToken);
 
     return {
         token: data.userToken,
