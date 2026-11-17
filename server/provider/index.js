@@ -19,9 +19,14 @@ async function getPreferences() {
  *
  * 单一音源模式：整个 app 同一时刻只用一个音源，
  * 音源由用户在登录时选定，存在 storage 的 'source' 键。
+ *
+ * 注意：electron-json-storage 对不存在的 key 返回 {}（不是 undefined），
+ * 所以要显式校验取值，不能用 `|| 默认值`。
  */
 async function getSource() {
-    return await storage.get('source') || NETEASE;
+    var saved = await storage.get('source');
+
+    return (saved === FNOS) ? FNOS : NETEASE;
 }
 
 /**

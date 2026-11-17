@@ -149,7 +149,7 @@ class Menu extends Component {
 
                             {
                                 // fnOS 模式只有本地曲库，歌单/榜单/推荐依赖网易云
-                                isFnos
+                                isFnos()
                                     ? false
                                     : (
                                         <React.Fragment>

@@ -4,8 +4,8 @@
  * 走 server/provider/index.js 的真实链路能否出流。
  *
  * 覆盖：
- *   1. preferences.enginers.Fnos = true → provider 被加入插件列表
- *   2. preferences.fnos 的连接配置被正确读取
+ *   1. storage 的 source = 'fnos' → provider 只走 Fnos
+ *   2. storage 的 fnos-profile 里的连接配置被正确读取
  *   3. 选中的音源返回可播放的 src（本地流代理地址）
  */
 
@@ -65,32 +65,21 @@ Module._load = function(request) {
 async function main() {
     fs.mkdirSync(STORAGE, { recursive: true });
 
-    // 写入偏好设置，模拟用户在 UI 里填好并打开了开关
+    // 写入存储，模拟用户在登录页选好 fnOS 音源并填了凭据
     fs.writeFileSync(APPDATA, JSON.stringify({
-        preferences: {
-            enginers: {
-                'QQ': true,
-                'MiGu': false,
-                'Xiami': false,
-                'Kugou': false,
-                'Baidu': false,
-                'Kuwo': false,
-                'Fnos': true,
-            },
-            fnos: {
-                base: 'https://nas:5667',
-                username: process.env.FNOS_USER || '',
-                password: process.env.FNOS_PASS || '',
-                insecure: true,
-            },
+        source: 'fnos',
+        'fnos-profile': {
+            base: 'https://nas:5667',
+            username: process.env.FNOS_USER || '',
+            password: process.env.FNOS_PASS || '',
         },
     }));
 
     const provider = require('../server/provider');
 
-    console.log('✓ 偏好设置已写入（含 enginers.Fnos=true 与 fnos 连接配置）');
+    console.log('✓ 存储已写入（source=fnos + fnos-profile 连接配置）');
 
-    // 走真实链路：getTrack 会依次尝试 Netease → Fnos
+    // 走真实链路：单一音源模式下只会走 Fnos
     const song = await provider.getTrack('晴天', '周杰伦', '186016');
 
     console.log('✓ getTrack 返回:', JSON.stringify(song));
@@ -124,6 +113,9 @@ async function main() {
     fs.rmSync(STORAGE, { recursive: true, force: true });
 
     console.log('\n端到端验证全部通过');
+
+    // provider 里起了本地流代理服务器，不主动退出会挂住
+    process.exit(0);
 }
 
 main().catch(ex => {

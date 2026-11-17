@@ -230,7 +230,11 @@ router.get('/:id?', async(req, res) => {
     } else {
         let personalized = await getPersonalized();
 
-        personalized[0].songs = await getSongs(personalized[0].id);
+        // 未登录（或接口无数据）时 personalized 可能为空
+        if (personalized.length) {
+            personalized[0].songs = await getSongs(personalized[0].id);
+        }
+
         list = [
             ...personalized,
             ...(await getNewest()),

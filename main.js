@@ -727,7 +727,13 @@ app.on('ready', async() => {
             throw err;
         }
 
-        var port = config.api.port || preferences.port;
+        // 用户在偏好设置里改过端口就用用户的。
+        // 之前写的是 config.api.port || preferences.port —— config.api.port
+        // 恒为 10086（truthy），用户的设置永远不生效。
+        var port = preferences.port || config.api.port;
+
+        // provider 也要知道真实端口
+        config.api.port = port;
 
         showMenuBar = !!preferences.showMenuBar;
         revertTrayIcon = preferences.revertTrayIcon;

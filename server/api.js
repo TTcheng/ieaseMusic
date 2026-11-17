@@ -12,13 +12,10 @@ import axios from 'axios';
 const app = express();
 const cache = apicache.middleware;
 const onlyStatus200 = (req, res) => res.statusCode === 200;
-const port = process.env.API_PORT || 8000;
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(cookieParser());
-
-axios.defaults.baseURL = `http://localhost:${port}`;
 
 // Set cookie for axios
 app.use((req, res, next) => {
@@ -87,11 +84,19 @@ function mount(proxy) {
 }
 
 if (process.env.APIONLY) {
+    var port = process.env.API_PORT || 8000;
+
+    axios.defaults.baseURL = `http://localhost:${port}`;
     mount();
     console.log(`API Server run with port: ${port}`);
 }
 
 export default (port, proxy, callback) => {
+    // router 层用 axios 调本机的 module 路由（/toplist、/search 等），
+    // baseURL 必须指向实际监听的端口 —— 之前写死成 8000，
+    // 导致所有 router 层的请求都打空（首页/歌单/榜单全是空的）。
+    axios.defaults.baseURL = `http://localhost:${port}`;
+
     mount(proxy);
     app.listen(port, callback);
 };

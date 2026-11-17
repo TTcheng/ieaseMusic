@@ -52,10 +52,13 @@ class Home {
             controller.setup(res.data.list[0]);
         }
 
-        if (preferences.autoPlay) {
-            controller.play();
-        } else {
-            controller.song = controller.playlist.songs[0];
+        // 首页为空时不设播放列表（避免 setup(undefined) 崩掉）
+        if (res.data.list.length) {
+            if (preferences.autoPlay) {
+                controller.play();
+            } else {
+                controller.song = controller.playlist.songs[0];
+            }
         }
 
         res.data.list.map(e => (e.pallet = false));

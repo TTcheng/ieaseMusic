@@ -76,6 +76,8 @@ class Preferences extends Component {
 
     renderOptions() {
         var { classes, preferences, source } = this.props;
+        // source 是 store 实例，当前音源在 source.source 上
+        var currentSource = source.source;
         var {
             showTray,
             setShowTray,
@@ -277,7 +279,7 @@ class Preferences extends Component {
                             </div>
 
                             <input
-                                checked={source === 'netease'}
+                                checked={currentSource === 'netease'}
                                 id="sourceNetease"
                                 name="source"
                                 onChange={e => this.switchSource('netease')}
@@ -291,7 +293,7 @@ class Preferences extends Component {
                             </div>
 
                             <input
-                                checked={source === 'fnos'}
+                                checked={currentSource === 'fnos'}
                                 id="sourceFnos"
                                 name="source"
                                 onChange={e => this.switchSource('fnos')}

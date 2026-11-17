@@ -33,8 +33,12 @@ class Source {
         var source = await storage.get(KEY_SOURCE);
         var fnosProfile = await storage.get(KEY_FNOS_PROFILE);
 
-        self.source = source || null;
-        self.fnosProfile = fnosProfile || {};
+        // electron-json-storage 对不存在的 key 返回 {}（不是 undefined），
+        // 所以这里必须校验是不是合法音源，否则 source 会变成 {} 这种真值。
+        self.source = (source === NETEASE || source === FNOS) ? source : null;
+        self.fnosProfile = (fnosProfile && typeof fnosProfile === 'object' && fnosProfile.base)
+            ? fnosProfile
+            : {};
         self.initialized = true;
 
         return self.source;

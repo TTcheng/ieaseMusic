@@ -385,7 +385,7 @@ class Welcome extends Component {
                             {
                                 // fnOS 模式只有本地曲库，
                                 // 歌单/榜单/推荐都依赖网易云，不适用
-                                isFnos
+                                isFnos()
                                     ? false
                                     : (
                                         <React.Fragment>
@@ -438,7 +438,7 @@ class Welcome extends Component {
                             ? (
                                 <section className={classes.list}>
                                     {
-                                        isFnos
+                                        isFnos()
                                             ? this.renderFnosTracks(list[0] && list[0].songs)
                                             : (
                                                 <React.Fragment>
