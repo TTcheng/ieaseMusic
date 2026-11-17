@@ -4,7 +4,7 @@
   "description": "网易云音乐第三方 ✨",
   "main": "main.js",
   "scripts": {
-    "test": "npm run test:fnos && npm run test:source",
+    "test": "npm run test:fnos && npm run test:source && npm run test:routes && npm run test:render && npm run test:netease",
     "test:fnos": "node -r babel-register bin/fnos-check.js --offline && node -r babel-register bin/fnos-match.js && node -r babel-register bin/fnos-e2e.js",
     "test:fnos:live": "node -r babel-register bin/fnos-check.js && node -r babel-register bin/fnos-selfcheck.js && node -r babel-register bin/fnos-e2e-provider.js && node -r babel-register -r ./bin/_stub-storage.js bin/fnos-router-check.js",
     "test:source": "node -r babel-register -r ./bin/_stub-storage.js bin/source-check.js",
@@ -22,7 +22,11 @@
     "package-win": "npm run build && rm -rf release && build --win --ia32 --projectDir ./dist",
     "dev": "concurrently --kill-others \"npm run hot-server\" \"npm run start-hot\"",
     "dd": "electron-builder --win --ia32 --projectDir ./dist",
-    "publish": "sh ./bin/publish.sh"
+    "publish": "sh ./bin/publish.sh",
+    "test:routes": "node -r babel-register -r ./bin/_stub-storage.js bin/routes-check.js",
+    "test:render": "node -r babel-register -r ./bin/_stub-storage.js bin/render-check.js",
+    "test:netease": "node -r babel-register -r ./bin/_stub-storage.js bin/netease-mode-check.js",
+    "test:integration": "npm run test:routes && npm run test:render && npm run test:netease && npm run test:fnos:mode"
   },
   "author": {
     "name": "trazyn",

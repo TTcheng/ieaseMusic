@@ -116,6 +116,8 @@ async function main() {
 
     fs.unlinkSync(STORAGE);
     console.log('\n全部通过');
+    // me 会连带加载 home，home 里有 CronJob 定时器，不主动退出会挂住
+    process.exit(0);
 }
 
 function storageSet(key, value) {
