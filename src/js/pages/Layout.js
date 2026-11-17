@@ -85,7 +85,7 @@ class _Background extends Component {
 }
 const Background = injectSheet(classes)(_Background);
 
-@inject('me', 'preferences')
+@inject('me', 'preferences', 'source')
 @observer
 class Layout extends Component {
     state = {
@@ -93,8 +93,10 @@ class Layout extends Component {
     };
 
     async componentWillMount() {
-        var { me, preferences } = this.props;
+        var { me, preferences, source } = this.props;
 
+        // 先恢复音源，再读对应音源的登录态
+        await source.init();
         await preferences.init();
         await me.init();
 
