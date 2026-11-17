@@ -47,14 +47,19 @@ class Source {
     /**
      * 选一个音源。
      *
-     * 切换会清掉当前登录态 —— 新音源必须重新登录。
+     * 切换会清掉当前音源的登录态 —— 新音源必须重新登录。
+     * 选同一个音源不动登录态（fnOS 重新登录时会先存凭据再调这里，
+     * 如果这里把自己的凭据清了，刚存的就没了）。
      */
     @action async setSource(source) {
         if (source !== NETEASE && source !== FNOS) {
             throw Error(`Unknown source: ${source}`);
         }
 
-        await self.clearLogin();
+        if (self.source !== source) {
+            await self.clearLogin();
+        }
+
         await storage.set(KEY_SOURCE, source);
 
         self.source = source;
@@ -62,15 +67,17 @@ class Source {
 
     /**
      * 清除当前音源的登录态。
+     *
+     * 只清当前音源的那一份 —— 切到 fnos 时不能把 netease 的 profile 删掉，
+     * 反之亦然。
      */
     @action async clearLogin() {
         if (self.source === NETEASE) {
             await storage.remove('profile');
         } else if (self.source === FNOS) {
             await storage.remove(KEY_FNOS_PROFILE);
+            self.fnosProfile = {};
         }
-
-        self.fnosProfile = {};
     }
 
     /**

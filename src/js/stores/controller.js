@@ -118,7 +118,7 @@ class Controller {
             );
             var data = response.data.song;
 
-            if (!data.src) {
+            if (!data || !data.src) {
                 throw Error('Bad audio src.');
             }
         } catch (ex) {

@@ -4,7 +4,7 @@
   "description": "网易云音乐第三方 ✨",
   "main": "main.js",
   "scripts": {
-    "test": "npm run test:fnos && npm run test:source && npm run test:routes && npm run test:render && npm run test:netease",
+    "test": "npm run test:fnos && npm run test:source && npm run test:routes && npm run test:render && npm run test:ui && npm run test:netease",
     "test:fnos": "node -r babel-register bin/fnos-check.js --offline && node -r babel-register bin/fnos-match.js && node -r babel-register bin/fnos-e2e.js",
     "test:fnos:live": "node -r babel-register bin/fnos-check.js && node -r babel-register bin/fnos-selfcheck.js && node -r babel-register bin/fnos-e2e-provider.js && node -r babel-register -r ./bin/_stub-storage.js bin/fnos-router-check.js",
     "test:source": "node -r babel-register -r ./bin/_stub-storage.js bin/source-check.js",
@@ -26,7 +26,8 @@
     "test:routes": "node -r babel-register -r ./bin/_stub-storage.js bin/routes-check.js",
     "test:render": "node -r babel-register -r ./bin/_stub-storage.js bin/render-check.js",
     "test:netease": "node -r babel-register -r ./bin/_stub-storage.js bin/netease-mode-check.js",
-    "test:integration": "npm run test:routes && npm run test:render && npm run test:netease && npm run test:fnos:mode"
+    "test:integration": "npm run test:routes && npm run test:render && npm run test:ui && npm run test:netease && npm run test:fnos:mode",
+    "test:ui": "node -r babel-register -r ./bin/_jsdom-env.js bin/ui-check.js"
   },
   "author": {
     "name": "trazyn",
@@ -124,6 +125,7 @@
     "express": "^4.15.4",
     "html-loader": "^0.5.1",
     "html-webpack-plugin": "^3.2.0",
+    "jsdom": "^24.1.3",
     "style-loader": "^0.23.0",
     "svg-inline-loader": "^0.8.0",
     "terser-webpack-plugin": "^1.2.1",
