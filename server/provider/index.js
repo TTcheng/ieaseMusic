@@ -2,20 +2,52 @@
 import fs from 'fs';
 import PacProxyAgent from 'pac-proxy-agent';
 import Netease from './Netease';
-import QQ from './QQ';
-import MiGu from './MiGu';
-import Kugou from './Kugou';
-import Baidu from './Baidu';
-import Xiami from './Xiami';
-import Kuwo from './Kuwo';
 import Fnos from './Fnos';
 import storage from '../../common/storage';
 import cache from '../../common/cache';
+
+// 音源标识（与 src/js/stores/source.js 保持一致）
+const NETEASE = 'netease';
+const FNOS = 'fnos';
 
 async function getPreferences() {
     return await storage.get('preferences') || {};
 }
 
+/**
+ * 当前音源。
+ *
+ * 单一音源模式：整个 app 同一时刻只用一个音源，
+ * 音源由用户在登录时选定，存在 storage 的 'source' 键。
+ */
+async function getSource() {
+    return await storage.get('source') || NETEASE;
+}
+
+/**
+ * 按当前音源取插件列表。
+ *
+ * 只返回一个 —— 不做多源回退。
+ */
+async function getPlugins(source) {
+    if (source === FNOS) {
+        return [{
+            enginner: Fnos,
+            proxy: true,
+        }];
+    }
+
+    return [{
+        enginner: Netease,
+        proxy: false,
+    }];
+}
+
+/**
+ * 并发跑插件，首个成功的返回。
+ *
+ * 只有一个插件时就是「成功即返回，失败即 reject」。
+ */
 async function exe(plugins, ...args) {
     var preferences = await getPreferences();
     var rpOptions = {
@@ -62,7 +94,9 @@ async function getFlac(keyword, artists, id) {
     try {
         var song = cache.get(id);
         if (!song) {
-            song = (await exe([QQ, Fnos], keyword, artists, true)) || {};
+            var plugins = await getPlugins(await getSource());
+
+            song = (await exe(plugins, keyword, artists, true)) || {};
             if (song.src) {
                 cache.set(id, song);
             }
@@ -75,7 +109,7 @@ async function getFlac(keyword, artists, id) {
 }
 
 async function loadFromLocal(id) {
-    var downloaded = (await storage.get('downloaded')) || {};
+    var downloaded = await storage.get('downloaded') || {};
     var task = downloaded[id];
 
     if (task) {
@@ -92,77 +126,12 @@ async function loadFromLocal(id) {
 }
 
 async function getTrack(keyword, artists, id /** This id is only work for netease music */) {
-    var preferences = await getPreferences();
-    var enginers = preferences.enginers;
-    var plugins = [{
-        enginner: Netease,
-        proxy: false,
-    }];
+    var source = await getSource();
+    var plugins = await getPlugins(source);
 
-    if (!enginers) {
-        enginers = {
-            'QQ': true,
-            'MiGu': true,
-            'Kuwo': true,
-            'Xiami': false,
-            'Kugou': false,
-            'Baidu': true,
-            'Fnos': false,
-        };
-    }
-
-    var key = Object.keys(enginers).sort().map(e => enginers[e] ? e.toUpperCase() : '').join('') + '#' + id;
+    var key = source + '#' + id;
     var song = cache.get(key);
     if (!song) {
-        if (enginers['QQ']) {
-            plugins.push({
-                enginner: QQ,
-                proxy: true,
-            });
-        }
-
-        if (enginers['MiGu']) {
-            plugins.push({
-                enginner: MiGu,
-                proxy: true,
-            });
-        }
-
-        if (enginers['Xiami']) {
-            plugins.push({
-                enginner: Xiami,
-                proxy: true,
-            });
-        }
-
-        if (enginers['Kugou']) {
-            plugins.push({
-                enginner: Kugou,
-                proxy: true,
-            });
-        }
-
-        if (enginers['Baidu']) {
-            plugins.push({
-                enginner: Baidu,
-                proxy: true,
-            });
-        }
-
-        if (enginers['Kuwo']) {
-            plugins.push({
-                enginner: Kuwo,
-                proxy: true,
-            });
-        }
-
-        if (enginers['Fnos']) {
-            plugins.push({
-                enginner: Fnos,
-                proxy: true,
-            });
-        }
-
         song = (await exe(plugins, keyword, artists, id)) || {};
         // Cache the search result
         if (song.src) {
@@ -177,4 +146,8 @@ export {
     loadFromLocal,
     getFlac,
     getTrack,
+    getSource,
+    getPlugins,
+    NETEASE,
+    FNOS,
 };

@@ -29,21 +29,28 @@ let proxyServer = null;
 let proxyPort = 0;
 
 /**
- * 读取用户在偏好设置里填写的 fnOS 连接信息。
+ * 读取 fnOS 连接信息。
+ *
+ * 存在 storage 的 'fnos-profile'（由 source store 写入），
+ * 兼容旧的 preferences.fnos。
  */
 async function getConfig() {
-    var preferences = await storage.get('preferences') || {};
-    var conf = preferences.fnos || {};
+    var saved = await storage.get('fnos-profile');
 
-    if (!conf.base || !conf.username || !conf.password) {
+    if (!saved || !saved.base) {
+        var preferences = await storage.get('preferences') || {};
+        saved = preferences.fnos || {};
+    }
+
+    if (!saved.base || !saved.username || !saved.password) {
         throw Error('fnOS is not configured');
     }
 
     return {
-        base: String(conf.base).replace(/\/+$/, ''),
-        username: conf.username,
-        password: conf.password,
-        insecure: conf.insecure !== false,
+        base: String(saved.base).replace(/\/+$/, ''),
+        username: saved.username,
+        password: saved.password,
+        insecure: true,
     };
 }
 
@@ -155,35 +162,55 @@ export default async(request, keyword, artists, idOrFlac) => {
     try {
         var config = await getConfig();
         var token = await getToken(config);
-
         var tracks;
+        var match = null;
 
-        try {
-            tracks = await fnos.searchTracks(config.base, token, keyword, {
-                insecure: config.insecure,
-                size: 24,
-            });
-        } catch (ex) {
-            // 登录态过期，重登一次再试
-            if (ex.status !== 401) {
-                throw ex;
+        // fnOS 模式下 id 就是曲库的 guid，直接取详情最准；
+        // 失败再退回「按歌名搜索 + 匹配」。
+        if (idOrFlac !== true && typeof idOrFlac === 'string' && idOrFlac.length === 32) {
+            try {
+                var meta = await fnos.request(config.base, '/music/api/v1/track/metadata', {
+                    params: { guid: idOrFlac },
+                    token,
+                    insecure: config.insecure,
+                });
+
+                if (meta.data && meta.data.track) {
+                    match = meta.data.track;
+                }
+            } catch (ex) {
+                debug('fnOS metadata failed, fallback to search: %s', ex.message);
             }
-
-            token = await getToken(config, true);
-            tracks = await fnos.searchTracks(config.base, token, keyword, {
-                insecure: config.insecure,
-                size: 24,
-            });
         }
-
-        if (!tracks || !tracks.length) {
-            return Promise.reject(Error(404));
-        }
-
-        var match = pick(tracks, keyword, artists);
 
         if (!match) {
-            return Promise.reject(Error(404));
+            try {
+                tracks = await fnos.searchTracks(config.base, token, keyword, {
+                    insecure: config.insecure,
+                    size: 24,
+                });
+            } catch (ex) {
+                // 登录态过期，重登一次再试
+                if (ex.status !== 401) {
+                    throw ex;
+                }
+
+                token = await getToken(config, true);
+                tracks = await fnos.searchTracks(config.base, token, keyword, {
+                    insecure: config.insecure,
+                    size: 24,
+                });
+            }
+
+            if (!tracks || !tracks.length) {
+                return Promise.reject(Error(404));
+            }
+
+            match = pick(tracks, keyword, artists);
+
+            if (!match) {
+                return Promise.reject(Error(404));
+            }
         }
 
         var spec = match.audioSpec || {};
