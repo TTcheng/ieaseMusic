@@ -102,6 +102,11 @@ function resolveAlias(request) {
 const Module = require('module');
 const originalLoad = Module._load;
 
+// 存储文件路径，供测试脚本写入初始数据
+const STORAGE = path.join(os.tmpdir(), `iease-jsdom-storage-${process.pid}.json`);
+
+exports.STORAGE = STORAGE;
+
 // css / 图片等资源
 for (const ext of ['.css', '.less', '.scss', '.png', '.jpg', '.svg', '.gif', '.woff', '.ttf']) {
     // eslint-disable-next-line node/no-deprecated-api
@@ -137,10 +142,6 @@ Module._load = function(request, parent, isMain) {
     }
 
     if (request === 'electron-json-storage') {
-        const STORAGE = path.join(os.tmpdir(), `iease-jsdom-storage-${process.pid}.json`);
-
-        exports.STORAGE = STORAGE;
-
         return {
             get: (key, cb) => {
                 let data = {};

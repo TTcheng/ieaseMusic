@@ -149,19 +149,19 @@ class Playing extends Component {
                             }
                         }
                     >
-                        <Link to={e.album.link}>
-                            <FadeImage src={e.album.cover} />
+                        <Link to={(e.album && e.album.link) || '/'}>
+                            <FadeImage src={e.album && e.album.cover} />
                         </Link>
 
                         <aside>
                             <p className={classes.title}>{e.name}</p>
                             <p className={classes.author}>
                                 {
-                                    e.artists.map((e, index) => {
+                                    (e.artists || []).map((e, index) => {
                                         return (
                                             <Link
                                                 key={index}
-                                                to={e.link}
+                                                to={e.link || '/'}
                                             >
                                                 {e.name}
                                             </Link>

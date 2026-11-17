@@ -63,6 +63,11 @@ class Controller extends Component {
             return false;
         }
 
+        // 不同音源的歌曲结构略有差异（fnOS 没有 album.link / artists[].link），
+        // 缺了会让 <Link to={undefined}> 抛错，整页白屏
+        var albumLink = (song.album && song.album.link) || '/';
+        var artists = song.artists || [];
+
         return (
             <div
                 className={classes.container}
@@ -159,20 +164,20 @@ class Controller extends Component {
                                 title={song.name}
                             >
                                 {/* Click the song name show the album screen */}
-                                <Link to={song.album.link}>
+                                <Link to={albumLink}>
                                     {song.name}
                                 </Link>
                             </p>
 
                             <p className={classes.author}>
                                 {
-                                    song.artists.map(
+                                    artists.map(
                                         (e, index) => {
                                             // Show the artist
                                             return (
                                                 <Link
                                                     key={index}
-                                                    to={e.link}
+                                                    to={e.link || '/'}
                                                     title={e.name}
                                                 >
                                                     {

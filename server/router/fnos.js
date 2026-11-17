@@ -44,6 +44,11 @@ async function resolveConf(query = {}) {
 
 /**
  * 把 fnOS 的 track 对象转成 ieaseMusic 的歌曲结构。
+ *
+ * album.link / artists[].link 必须有值 —— 前端 Controller、Playing 组件
+ * 直接用它们做 <Link to={...}>，缺了会抛
+ * "You must specify the \"to\" property"，整页白屏。
+ * fnOS 模式没有专辑/歌手页面，指向根路径（合法且不会跳到不存在的路由）。
  */
 function toSong(track, base) {
     var spec = track.audioSpec || {};
@@ -52,16 +57,19 @@ function toSong(track, base) {
         id: track.guid,
         name: track.title,
         duration: track.duration,
+        link: '/',
         album: {
             id: track.album && track.album.guid,
             name: track.album && track.album.name,
             cover: track.coverId
                 ? `${base}/music/api/v1/static/cover?coverId=${track.coverId}&size=300`
                 : null,
+            link: '/',
         },
         artists: (track.artists || []).map(a => ({
             id: a.guid,
             name: a.name,
+            link: '/',
         })),
         // fnOS 特有字段，前端用来取封面与歌词
         guid: track.guid,
