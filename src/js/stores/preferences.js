@@ -33,25 +33,8 @@ class Preferences {
     };
     @observable connecting = false;
     @observable scrobble = true;
-    @observable enginers = {
-        'QQ': true,
-        'MiGu': true,
-        'Xiami': false,
-        'Kugou': false,
-        'Baidu': true,
-        'kuwo': true,
-        'Fnos': false,
-    };
     @observable proxy = '';
     @observable downloads = path.join(remote.app.getPath('music'), pkg.name);
-
-    // 飞牛音乐（fnOS）连接信息
-    @observable fnos = {
-        base: '',
-        username: '',
-        password: '',
-        insecure: true,
-    };
 
     @action async init() {
         var preferences = await storage.get('preferences');
@@ -70,10 +53,8 @@ class Preferences {
             autoupdate = self.autoupdate,
             scrobble = self.scrobble,
             lastfm = self.lastfm,
-            enginers = self.enginers,
             proxy = self.proxy,
             downloads = self.downloads,
-            fnos = self.fnos,
         } = preferences;
 
         self.showTray = !!showTray;
@@ -89,10 +70,8 @@ class Preferences {
         self.autoupdate = autoupdate;
         self.scrobble = scrobble;
         self.lastfm = lastfm;
-        self.enginers = enginers;
         self.proxy = proxy;
         self.downloads = downloads;
-        self.fnos = Object.assign({}, self.fnos, fnos || {});
 
         // Save preferences
         self.save();
@@ -102,7 +81,7 @@ class Preferences {
     }
 
     @action async save() {
-        var { showTray, showMenuBar, revertTrayIcon, alwaysOnTop, showNotification, autoPlay, port, volume, highquality, backgrounds, autoupdate, scrobble, lastfm, enginers, proxy, downloads, fnos } = self;
+        var { showTray, showMenuBar, revertTrayIcon, alwaysOnTop, showNotification, autoPlay, port, volume, highquality, backgrounds, autoupdate, scrobble, lastfm, proxy, downloads } = self;
 
         await storage.set('preferences', {
             showTray,
@@ -118,10 +97,8 @@ class Preferences {
             autoupdate,
             scrobble,
             lastfm,
-            enginers,
             proxy,
             downloads,
-            fnos,
         });
 
         ipcRenderer.send('update-preferences', {
@@ -218,11 +195,6 @@ class Preferences {
         self.save();
     }
 
-    @action setFnos(fnos) {
-        self.fnos = Object.assign({}, self.fnos, fnos);
-        self.save();
-    }
-
     @action async connect() {
         var { username, password } = self.lastfm;
 
@@ -239,11 +211,6 @@ class Preferences {
         }
 
         self.connecting = false;
-    }
-
-    @action async setEnginers(enginers) {
-        self.enginers = enginers;
-        self.save();
     }
 
     // macOS 始终有菜单栏，这个开关对它无意义，UI 上不显示

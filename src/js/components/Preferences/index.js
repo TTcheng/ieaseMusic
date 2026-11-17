@@ -9,7 +9,7 @@ import classes from './classes';
 import Switch from 'ui/Switch';
 import theme from 'config/theme';
 
-@inject('preferences')
+@inject('preferences', 'source')
 @observer
 class Preferences extends Component {
     close() {
@@ -34,22 +34,33 @@ class Preferences extends Component {
         });
     }
 
-    setEnginers(value) {
-        var { preferences } = this.props;
+    /**
+     * 切换音源。
+     *
+     * 切换会清掉当前登录态，需要重新登录 —— 先确认再切。
+     */
+    async switchSource(source) {
+        var current = this.props.source.source;
 
-        preferences.setEnginers(Object.assign({}, preferences.enginers, value));
-    }
+        if (current === source) {
+            return;
+        }
 
-    saveFnos(insecure) {
-        var { preferences } = this.props;
-        var el = document.getElementById('fnosInsecure');
+        var confirmed = window.confirm(
+            '切换音源会退出当前登录，需要重新登录。是否继续？'
+        );
 
-        preferences.setFnos({
-            base: this.fnosBase.value.trim(),
-            username: this.fnosUsername.value.trim(),
-            password: this.fnosPassword.value,
-            insecure: insecure === undefined ? (el ? el.checked : true) : insecure,
-        });
+        if (!confirmed) {
+            // 取消后把单选框拨回原值
+            this.forceUpdate();
+
+            return;
+        }
+
+        await this.props.source.setSource(source);
+        this.props.preferences.show = false;
+
+        window.location.hash = '#/login';
     }
 
     isConnected() {
@@ -64,7 +75,7 @@ class Preferences extends Component {
     }
 
     renderOptions() {
-        var { classes, preferences } = this.props;
+        var { classes, preferences, source } = this.props;
         var {
             showTray,
             setShowTray,
@@ -91,12 +102,10 @@ class Preferences extends Component {
             lastfm,
             connect,
             connecting,
-            enginers,
             proxy,
             setProxy,
             downloads,
             setDownloads,
-            fnos,
         } = preferences;
         return (
             <div className={classes.container}>
@@ -258,117 +267,35 @@ class Preferences extends Component {
 
                     <article>
                         <h3>
-                            Music search enginers
+                            音源
+                            <small>同一时间只使用一个音源，切换后需重新登录</small>
                         </h3>
-                        <label htmlFor="enginerOfQQ">
-                            <h4>QQ 音乐</h4>
-
-                            <Switch
-                                defaultChecked={enginers['QQ']}
-                                id="enginerOfQQ"
-                                onChange={e => this.setEnginers({ 'QQ': e.target.checked })} />
-                        </label>
-                        <label htmlFor="enginerOfMiGu">
-                            <h4>咪咕音乐</h4>
-
-                            <Switch
-                                defaultChecked={enginers['MiGu']}
-                                id="enginerOfMiGu"
-                                onChange={e => this.setEnginers({ 'MiGu': e.target.checked })} />
-                        </label>
-                        <label htmlFor="enginerOfXiami">
-                            <h4>虾米音乐</h4>
-
-                            <Switch
-                                defaultChecked={enginers['Xiami']}
-                                id="enginerOfXiami"
-                                onChange={e => this.setEnginers({ 'Xiami': e.target.checked })} />
-                        </label>
-                        <label htmlFor="enginerOfKugou">
-                            <h4>酷狗音乐</h4>
-
-                            <Switch
-                                defaultChecked={enginers['Kugou']}
-                                id="enginerOfKugou"
-                                onChange={e => this.setEnginers({ 'Kugou': e.target.checked })} />
-                        </label>
-                        <label htmlFor="enginerOfKuwo">
-                            <h4>酷我音乐</h4>
-
-                            <Switch
-                                defaultChecked={enginers['Kuwo']}
-                                id="enginerOfKuwo"
-                                onChange={e => this.setEnginers({ 'Kuwo': e.target.checked })} />
-                        </label>
-                        <label htmlFor="enginerOfBaidu">
-                            <h4>百度音乐</h4>
-
-                            <Switch
-                                defaultChecked={enginers['Baidu']}
-                                id="enginerOfBaidu"
-                                onChange={e => this.setEnginers({ 'Baidu': e.target.checked })} />
-                        </label>
-                    </article>
-
-                    <article>
-                        <h3>
-                            飞牛音乐（fnOS）
-                            <small>用 NAS 上的「飞牛音乐」曲库作为音源</small>
-                        </h3>
-                        <label htmlFor="enginerOfFnos">
+                        <label htmlFor="sourceNetease">
                             <div>
-                                <h4>启用飞牛音源</h4>
-                                <p>开启后优先从 NAS 曲库找歌，命中即播本地文件（支持 FLAC）</p>
+                                <h4>网易云音乐</h4>
+                                <p>在线曲库、榜单、歌单与红心</p>
                             </div>
 
-                            <Switch
-                                defaultChecked={enginers['Fnos']}
-                                id="enginerOfFnos"
-                                onChange={e => this.setEnginers({ 'Fnos': e.target.checked })} />
+                            <input
+                                checked={source === 'netease'}
+                                id="sourceNetease"
+                                name="source"
+                                onChange={e => this.switchSource('netease')}
+                                type="radio" />
                         </label>
-                        <div className={classes.field}>
-                            <span>服务地址</span>
-                            <input
-                                className={classes.textInput}
-                                defaultValue={fnos.base}
-                                onBlur={ev => this.saveFnos()}
-                                placeholder="https://nas:5667"
-                                ref={ele => (this.fnosBase = ele)}
-                                type="text" />
-                        </div>
 
-                        <div className={classes.field}>
-                            <span>用户名</span>
-                            <input
-                                className={classes.textInput}
-                                defaultValue={fnos.username}
-                                onBlur={ev => this.saveFnos()}
-                                placeholder="fnOS account"
-                                ref={ele => (this.fnosUsername = ele)}
-                                type="text" />
-                        </div>
-
-                        <div className={classes.field}>
-                            <span>密码</span>
-                            <input
-                                className={classes.textInput}
-                                defaultValue={fnos.password}
-                                onBlur={ev => this.saveFnos()}
-                                placeholder="fnOS password"
-                                ref={ele => (this.fnosPassword = ele)}
-                                type="password" />
-                        </div>
-
-                        <label htmlFor="fnosInsecure">
+                        <label htmlFor="sourceFnos">
                             <div>
-                                <h4>Ignore certificate errors</h4>
-                                <p>fnOS 默认使用自签名证书，开启后跳过证书校验</p>
+                                <h4>飞牛音乐（NAS 曲库）</h4>
+                                <p>搜索并播放本机曲库，支持 FLAC</p>
                             </div>
 
-                            <Switch
-                                defaultChecked={fnos.insecure}
-                                id="fnosInsecure"
-                                onChange={e => this.saveFnos(e.target.checked)} />
+                            <input
+                                checked={source === 'fnos'}
+                                id="sourceFnos"
+                                name="source"
+                                onChange={e => this.switchSource('fnos')}
+                                type="radio" />
                         </label>
                     </article>
 

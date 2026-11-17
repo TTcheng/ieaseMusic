@@ -19,6 +19,8 @@ import FadeImage from 'ui/FadeImage';
         stores.menu.toggle(false);
         stores.preferences.show = true;
     },
+    isFnos: stores.source.isFnos,
+    fnosProfile: stores.source.fnosProfile,
 }))
 @observer
 class Menu extends Component {
@@ -29,20 +31,44 @@ class Menu extends Component {
     }
 
     renderMe() {
-        var { classes, close, hasLogin, profile } = this.props;
-        var link = `/user/${profile.userId}`;
+        var { classes, close, hasLogin, profile, isFnos, fnosProfile } = this.props;
 
         if (!hasLogin()) {
             return (
                 <p>
                     <Link
                         onClick={close}
-                        to="/login/0">
+                        to="/login">
                         Sign in
                     </Link>
                 </p>
             );
         }
+
+        // fnOS 音源没有网易云的个人主页，只显示昵称
+        if (isFnos()) {
+            var nickname = (fnosProfile.user && fnosProfile.user.name)
+                || fnosProfile.username
+                || '飞牛音乐';
+
+            return (
+                <article className={classes.profile}>
+                    <div className={classes.info}>
+                        <p className={classes.username}>
+                            {nickname}
+                        </p>
+                        <a
+                            className={classes.logout}
+                            href=""
+                            onClick={e => this.doLogout()}>
+                            Logout
+                        </a>
+                    </div>
+                </article>
+            );
+        }
+
+        var link = `/user/${profile.userId}`;
 
         return (
             <article className={classes.profile}>
@@ -80,7 +106,7 @@ class Menu extends Component {
     }
 
     render() {
-        var { classes, show, close, showPreferences } = this.props;
+        var { classes, show, close, showPreferences, isFnos } = this.props;
 
         if (!show) {
             return false;
@@ -120,28 +146,38 @@ class Menu extends Component {
                                     Search
                                 </Link>
                             </p>
-                            <p>
-                                <Link
-                                    onClick={close}
-                                    to="/playlist/全部">
-                                    Playlist
-                                </Link>
-                            </p>
-                            <p>
-                                <Link
-                                    onClick={close}
-                                    to="/top">
-                                    Top
-                                </Link>
-                            </p>
 
-                            <p>
-                                <Link
-                                    onClick={close}
-                                    to="/fm">
-                                    Made For You
-                                </Link>
-                            </p>
+                            {
+                                // fnOS 模式只有本地曲库，歌单/榜单/推荐依赖网易云
+                                isFnos
+                                    ? false
+                                    : (
+                                        <React.Fragment>
+                                            <p>
+                                                <Link
+                                                    onClick={close}
+                                                    to="/playlist/全部">
+                                                    Playlist
+                                                </Link>
+                                            </p>
+                                            <p>
+                                                <Link
+                                                    onClick={close}
+                                                    to="/top">
+                                                    Top
+                                                </Link>
+                                            </p>
+
+                                            <p>
+                                                <Link
+                                                    onClick={close}
+                                                    to="/fm">
+                                                    Made For You
+                                                </Link>
+                                            </p>
+                                        </React.Fragment>
+                                    )
+                            }
 
                             <p>
                                 <a
