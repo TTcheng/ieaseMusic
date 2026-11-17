@@ -360,7 +360,8 @@ class Welcome extends Component {
         var { classes, controller, me, home, preferences, isFnos } = this.props;
         var list = home.list;
         var logined = me.hasLogin();
-        var hasRecommend = logined && list.length && list[1].size;
+        // fnOS 模式的首页只有一项（最近添加的曲目），没有 list[1] 推荐位
+        var hasRecommend = !isFnos() && logined && list.length && list[1].size;
 
         return (
             <div className={classes.container}>
@@ -439,7 +440,19 @@ class Welcome extends Component {
                                 <section className={classes.list}>
                                     {
                                         isFnos()
-                                            ? this.renderFnosTracks(list[0] && list[0].songs)
+                                            ? (
+                                                <React.Fragment>
+                                                    {
+                                                        this.renderFnosTracks(list[0] && list[0].songs)
+                                                    }
+                                                    {
+                                                        // 专辑与艺术家卡片（list[1] / list[2]）
+                                                        this.renderPlaylist(
+                                                            [].concat(list[1] || [], list[2] || [])
+                                                        )
+                                                    }
+                                                </React.Fragment>
+                                            )
                                             : (
                                                 <React.Fragment>
                                                     {

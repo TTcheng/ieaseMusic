@@ -26,9 +26,10 @@
     "test:routes": "node -r babel-register -r ./bin/_stub-storage.js bin/routes-check.js",
     "test:render": "node -r babel-register -r ./bin/_stub-storage.js bin/render-check.js",
     "test:netease": "node -r babel-register -r ./bin/_stub-storage.js bin/netease-mode-check.js",
-    "test:integration": "npm run test:routes && npm run test:render && npm run test:ui && npm run test:netease && npm run test:fnos:mode && npm run test:fnos:link",
+    "test:integration": "npm run test:routes && npm run test:render && npm run test:ui && npm run test:netease && npm run test:fnos:mode && npm run test:fnos:link && npm run test:fnos:home",
     "test:ui": "node -r babel-register -r ./bin/_jsdom-env.js bin/ui-check.js",
-    "test:fnos:link": "node -r babel-register -r ./bin/_jsdom-env.js bin/fnos-link-check.js"
+    "test:fnos:link": "node -r babel-register -r ./bin/_jsdom-env.js bin/fnos-link-check.js",
+    "test:fnos:home": "node -r babel-register -r ./bin/_jsdom-env.js bin/fnos-home-check.js"
   },
   "author": {
     "name": "trazyn",

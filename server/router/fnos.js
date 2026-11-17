@@ -213,10 +213,17 @@ router.get('/track/:guid', async(req, res) => {
 /**
  * GET /api/fnos/home
  *
- * fnOS 模式的首页：最近添加的专辑 + 曲目数最多的艺术家 + 最新曲目。
+ * fnOS 模式的首页。
  *
- * 返回结构对齐网易云的 /api/home（list[0]=收藏、list[1]=推荐、list[2]=兜底），
- * 这样前端的 home store 不用改太多。
+ * 返回结构与网易云的 /api/home 对齐（list[0]=我的音乐、list[1]=推荐、
+ * list[2]=兜底），前端按索引取 list[0]/list[1] 才不会读到 undefined。
+ *
+ * fnOS 没有「收藏」「每日推荐」，所以：
+ *   list[0] = 最近添加的曲目（可直接播）
+ *   list[1] = 最近添加的专辑
+ *   list[2] = 曲目最多的艺术家
+ *
+ * 专辑/艺术家没有对应页面，link 指向 '/'（能点，回到首页）。
  */
 router.get('/home', async(req, res) => {
     var c = await resolveConf();
@@ -232,23 +239,67 @@ router.get('/home', async(req, res) => {
             deviceId: '0123456789abcdef0123456789abcdef',
         });
 
-        var tracks = await fnos.request(c.base, '/music/api/v1/track/list', {
-            params: { page: 1, size: 30, sort: 'createdAt,desc' },
-            token,
-            insecure: true,
-        });
+        var [tracks, albums, artists] = await Promise.all([
+            fnos.request(c.base, '/music/api/v1/track/list', {
+                params: { page: 1, size: 30, sort: 'createdAt,desc' },
+                token,
+                insecure: true,
+            }),
+            fnos.request(c.base, '/music/api/v1/album/list', {
+                params: { page: 1, size: 12, sort: 'newTrackAddedAt,desc' },
+                token,
+                insecure: true,
+            }),
+            fnos.request(c.base, '/music/api/v1/artist/list', {
+                params: { page: 1, size: 12, sort: 'albumCount,desc' },
+                token,
+                insecure: true,
+            }),
+        ]);
 
         var trackList = (tracks.data && tracks.data.list) || [];
+        var albumList = (albums.data && albums.data.list) || [];
+        var artistList = (artists.data && artists.data.list) || [];
+
+        var cover = id => id
+            ? `${c.base}/music/api/v1/static/cover?coverId=${id}&size=300`
+            : null;
 
         res.send({
             list: [
-                // 最新曲目 —— 首页直接可播
+                // list[0] —— 最近添加的曲目，首页直接可播
                 {
                     id: 'FNOS_RECENT',
                     name: '最近添加',
+                    type: 0,
                     size: trackList.length,
+                    link: '/',
                     songs: trackList.map(t => toSong(t, c.base)),
                 },
+                // list[1] —— 最近添加的专辑
+                albumList.map(item => ({
+                    id: item.guid,
+                    name: item.name,
+                    type: 1,
+                    size: item.trackCount,
+                    link: '/',
+                    cover: cover(item.coverId),
+                    background: cover(item.coverId),
+                    artists: (item.artists || []).map(a => ({ name: a.name })),
+                    guid: item.guid,
+                })),
+                // list[2] —— 曲目最多的艺术家
+                artistList.map(item => ({
+                    id: item.guid,
+                    name: item.name,
+                    type: 1,
+                    size: item.trackCount,
+                    link: '/',
+                    cover: cover(item.coverId),
+                    background: cover(item.coverId),
+                    artists: [{ name: item.name }],
+                    guid: item.guid,
+                })),
             ],
         });
     } catch (ex) {
