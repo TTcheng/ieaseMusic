@@ -61,4 +61,26 @@ if (fs.existsSync(lock)) {
     fs.unlinkSync(lock);
 }
 
+// server/api.js 启动时 fs.readdirSync(<asar>/NeteaseCloudMusicApi/module)，
+// 生产包缺这个目录会抛错 → API 服务器起不来 → 界面永远停在 loading。
+// webpack 的拷贝只把文件平铺到 dist 根，结构不对，这里按代码期望的路径补一份。
+const ncm = path.join(ROOT, 'NeteaseCloudMusicApi');
+const ncmDist = path.join(DIST, 'NeteaseCloudMusicApi');
+
+['module', 'util'].forEach(dir => {
+    const src = path.join(ncm, dir);
+    const dest = path.join(ncmDist, dir);
+    if (!fs.existsSync(src)) {
+        throw new Error(`缺少 ${src}，先执行 git submodule update --init`);
+    }
+    fs.mkdirSync(dest, { recursive: true });
+    fs.readdirSync(src).forEach(file => {
+        if (/\.js$/i.test(file)) {
+            fs.copyFileSync(path.join(src, file), path.join(dest, file));
+        }
+    });
+});
+
+console.log(`✓ dist/NeteaseCloudMusicApi 已就位：${fs.readdirSync(path.join(ncmDist, 'module')).length} 个 module`);
+
 console.log(`✓ dist/package.json 已生成：${Object.keys(runtime.dependencies).length} 个运行时依赖，${Object.keys(source.devDependencies || {}).length} 个 devDependencies 已剥离（保留 electron ${electronVersion || '无'} 供 builder 定位二进制）`);
