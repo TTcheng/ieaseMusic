@@ -7,6 +7,7 @@ import chalk from 'chalk';
 import fnos from '../fnos';
 import { pick, PREFERRED } from './fnos-match';
 import storage from '../../common/storage';
+import { readFnosProfile } from '../../common/source';
 
 const debug = _debug('dev:plugin:Fnos');
 const error = _debug('dev:plugin:Fnos:error');
@@ -35,9 +36,10 @@ let proxyPort = 0;
  * 兼容旧的 preferences.fnos。
  */
 async function getConfig() {
-    var saved = await storage.get('fnos-profile');
+    var saved = await readFnosProfile();
 
-    if (!saved || !saved.base) {
+    if (!saved) {
+        // 兼容旧的 preferences.fnos（老版本把 fnOS 配置放在 preferences 里）
         var preferences = await storage.get('preferences') || {};
         saved = preferences.fnos || {};
     }

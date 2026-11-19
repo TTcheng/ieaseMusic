@@ -17,12 +17,10 @@ import express from 'express';
 import _debug from 'debug';
 
 import fnos from '../fnos';
-import storage from '../../common/storage';
+import { readFnosProfile } from '../../common/source';
 
 const error = _debug('dev:error');
 const router = express();
-
-const FNOS_PROFILE_KEY = 'fnos-profile';
 
 /**
  * 取 fnOS 凭据：优先用请求参数，否则用已保存的。
@@ -36,7 +34,7 @@ async function resolveConf(query = {}) {
         };
     }
 
-    var saved = await storage.get(FNOS_PROFILE_KEY);
+    var saved = await readFnosProfile();
 
     if (!saved || !saved.base || !saved.username || !saved.password) {
         return null;
@@ -63,9 +61,7 @@ function toSong(track, base) {
         album: {
             id: track.album && track.album.guid,
             name: track.album && track.album.name,
-            cover: track.coverId
-                ? `${base}/music/api/v1/static/cover?coverId=${track.coverId}&size=300`
-                : null,
+            cover: coverUrl(track.coverId, base),
             link: track.album && track.album.guid
                 ? `/fnos/album/${track.album.guid}`
                 : '/',
@@ -93,8 +89,82 @@ function coverUrl(coverId, base, size = 300) {
 }
 
 /**
+ * fnOS 专辑 -> ieaseMusic 卡片结构。
+ *
+ * 这是专辑映射的唯一 owner：/search、/home、/artist/:guid 三处都用它，
+ * 免得同一个概念在三个地方各写一份、字段悄悄对不上。
+ */
+function toAlbum(item, base) {
+    return {
+        id: item.guid,
+        name: item.name,
+        type: 1,
+        size: item.trackCount,
+        link: `/fnos/album/${item.guid}`,
+        cover: coverUrl(item.coverId, base),
+        background: coverUrl(item.coverId, base),
+        artists: (item.artists || []).map(a => ({ name: a.name })),
+        guid: item.guid,
+    };
+}
+
+/**
+ * fnOS 艺术家 -> ieaseMusic 卡片结构。唯一 owner，同 toAlbum。
+ */
+function toArtist(item, base) {
+    return {
+        id: item.guid,
+        name: item.name,
+        type: 1,
+        size: item.trackCount,
+        link: `/fnos/artist/${item.guid}`,
+        cover: coverUrl(item.coverId, base),
+        background: coverUrl(item.coverId, base),
+        artists: [{ name: item.name }],
+        guid: item.guid,
+    };
+}
+
+/**
  * 登录并返回一个带 token 的请求函数，省得每个路由都写一遍。
  */
+// 登录态缓存：{fingerprint, token, promise}
+//
+// 每次请求都重新登录有两个问题：
+//   1. 慢 —— 每个路由都多一次完整的登录往返
+//   2. 脆 —— fnOS 对同一 deviceId 的重复登录会作废前一个 token，
+//      并发请求时后到的登录会让先到的请求拿到 120001
+// 缓存 token、失效（401）时才重登，与 server/provider/Fnos.js 一致。
+var loginCache = null;
+
+async function getToken(conf, force) {
+    var fingerprint = `${conf.base}|${conf.username}`;
+
+    if (!force && loginCache && loginCache.fingerprint === fingerprint && loginCache.token) {
+        return loginCache.token;
+    }
+
+    // 并发时共用同一个登录请求，不要各自发一次
+    if (!force && loginCache && loginCache.fingerprint === fingerprint && loginCache.promise) {
+        return loginCache.promise;
+    }
+
+    var promise = fnos.login(conf.base, conf.username, conf.password, {
+        insecure: true,
+        deviceId: '0123456789abcdef0123456789abcdef',
+    }).then(token => {
+        loginCache = { fingerprint, token, promise: null };
+        return token;
+    }).catch(ex => {
+        loginCache = null;
+        throw ex;
+    });
+
+    loginCache = { fingerprint, token: null, promise };
+
+    return promise;
+}
+
 async function withSession(query) {
     var conf = await resolveConf(query);
 
@@ -102,19 +172,33 @@ async function withSession(query) {
         return null;
     }
 
-    var token = await fnos.login(conf.base, conf.username, conf.password, {
-        insecure: true,
-        deviceId: '0123456789abcdef0123456789abcdef',
-    });
+    var token = await getToken(conf);
 
     return {
         conf,
         token,
-        get: (path, params) => fnos.request(conf.base, path, {
-            params,
-            token,
-            insecure: true,
-        }),
+        get: async(path, params) => {
+            try {
+                return await fnos.request(conf.base, path, {
+                    params,
+                    token,
+                    insecure: true,
+                });
+            } catch (ex) {
+                // token 过期 —— 重登一次再试
+                if (ex.status !== 401) {
+                    throw ex;
+                }
+
+                var fresh = await getToken(conf, true);
+
+                return fnos.request(conf.base, path, {
+                    params,
+                    token: fresh,
+                    insecure: true,
+                });
+            }
+        },
     };
 }
 
@@ -197,17 +281,7 @@ router.get('/search', async(req, res) => {
             var albumList = albumData.list || [];
 
             res.send({
-                list: albumList.map(item => ({
-                    id: item.guid,
-                    name: item.name,
-                    type: 1,
-                    size: item.trackCount,
-                    link: `/fnos/album/${item.guid}`,
-                    cover: coverUrl(item.coverId, session.conf.base),
-                    background: coverUrl(item.coverId, session.conf.base),
-                    artists: (item.artists || []).map(a => ({ name: a.name })),
-                    guid: item.guid,
-                })),
+                list: albumList.map(item => toAlbum(item, session.conf.base)),
                 total: albumData.total || 0,
                 page,
                 size,
@@ -222,17 +296,7 @@ router.get('/search', async(req, res) => {
             var artistList = artistData.list || [];
 
             res.send({
-                list: artistList.map(item => ({
-                    id: item.guid,
-                    name: item.name,
-                    type: 1,
-                    size: item.trackCount,
-                    link: `/fnos/artist/${item.guid}`,
-                    cover: coverUrl(item.coverId, session.conf.base),
-                    background: coverUrl(item.coverId, session.conf.base),
-                    artists: [{ name: item.name }],
-                    guid: item.guid,
-                })),
+                list: artistList.map(item => toArtist(item, session.conf.base)),
                 total: artistData.total || 0,
                 page,
                 size,
@@ -313,34 +377,25 @@ router.get('/track/:guid', async(req, res) => {
  * 专辑/艺术家没有对应页面，link 指向 '/'（能点，回到首页）。
  */
 router.get('/home', async(req, res) => {
-    var c = await resolveConf();
+    var session = await withSession(req.query);
 
-    if (!c) {
-        res.send({ list: [] });
+    if (!session) {
+        res.send({ recent: null, albums: [], artists: [] });
         return;
     }
 
-    try {
-        var token = await fnos.login(c.base, c.username, c.password, {
-            insecure: true,
-            deviceId: '0123456789abcdef0123456789abcdef',
-        });
+    var c = session.conf;
 
+    try {
         var [tracks, albums, artists] = await Promise.all([
-            fnos.request(c.base, '/music/api/v1/track/list', {
-                params: { page: 1, size: 30, sort: 'createdAt,desc' },
-                token,
-                insecure: true,
+            session.get('/music/api/v1/track/list', {
+                page: 1, size: 30, sort: 'createdAt,desc',
             }),
-            fnos.request(c.base, '/music/api/v1/album/list', {
-                params: { page: 1, size: 12, sort: 'newTrackAddedAt,desc' },
-                token,
-                insecure: true,
+            session.get('/music/api/v1/album/list', {
+                page: 1, size: 12, sort: 'newTrackAddedAt,desc',
             }),
-            fnos.request(c.base, '/music/api/v1/artist/list', {
-                params: { page: 1, size: 12, sort: 'albumCount,desc' },
-                token,
-                insecure: true,
+            session.get('/music/api/v1/artist/list', {
+                page: 1, size: 12, sort: 'albumCount,desc',
             }),
         ]);
 
@@ -348,48 +403,24 @@ router.get('/home', async(req, res) => {
         var albumList = (albums.data && albums.data.list) || [];
         var artistList = (artists.data && artists.data.list) || [];
 
-        var cover = id => coverUrl(id, c.base);
-
+        // 具名结构，不用 list[0]/list[1]/list[2]：
+        // 之前三段语义不同（list[0] 是对象、list[1]/list[2] 是数组），
+        // 前端读 list[1].size 就会崩。字段名说清楚要什么。
         res.send({
-            list: [
-                // list[0] —— 最近添加的曲目，首页直接可播
-                {
-                    id: 'FNOS_RECENT',
-                    name: '最近添加',
-                    type: 0,
-                    size: trackList.length,
-                    link: '/',
-                    songs: trackList.map(t => toSong(t, c.base)),
-                },
-                // list[1] —— 最近添加的专辑
-                albumList.map(item => ({
-                    id: item.guid,
-                    name: item.name,
-                    type: 1,
-                    size: item.trackCount,
-                    link: `/fnos/album/${item.guid}`,
-                    cover: cover(item.coverId),
-                    background: cover(item.coverId),
-                    artists: (item.artists || []).map(a => ({ name: a.name })),
-                    guid: item.guid,
-                })),
-                // list[2] —— 曲目最多的艺术家
-                artistList.map(item => ({
-                    id: item.guid,
-                    name: item.name,
-                    type: 1,
-                    size: item.trackCount,
-                    link: `/fnos/artist/${item.guid}`,
-                    cover: cover(item.coverId),
-                    background: cover(item.coverId),
-                    artists: [{ name: item.name }],
-                    guid: item.guid,
-                })),
-            ],
+            recent: {
+                id: 'FNOS_RECENT',
+                name: '最近添加',
+                type: 0,
+                size: trackList.length,
+                link: '/',
+                songs: trackList.map(t => toSong(t, c.base)),
+            },
+            albums: albumList.map(item => toAlbum(item, c.base)),
+            artists: artistList.map(item => toArtist(item, c.base)),
         });
     } catch (ex) {
         error('fnOS home failed: %s', ex.message);
-        res.send({ list: [] });
+        res.send({ recent: null, albums: [], artists: [] });
     }
 });
 
@@ -481,17 +512,7 @@ router.get('/artist/:guid', async(req, res) => {
             background: coverUrl(artist.coverId, session.conf.base, 800),
             albumCount: artist.albumCount || albumList.length,
             trackCount: artist.trackCount || trackList.length,
-            albums: albumList.map(item => ({
-                id: item.guid,
-                name: item.name,
-                type: 1,
-                size: item.trackCount,
-                link: `/fnos/album/${item.guid}`,
-                cover: coverUrl(item.coverId, session.conf.base),
-                background: coverUrl(item.coverId, session.conf.base),
-                artists: (item.artists || []).map(a => ({ name: a.name })),
-                guid: item.guid,
-            })),
+            albums: albumList.map(item => toAlbum(item, session.conf.base)),
             songs: trackList.map(t => toSong(t, session.conf.base)),
         });
     } catch (ex) {

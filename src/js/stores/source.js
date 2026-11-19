@@ -2,13 +2,7 @@
 import { observable, action } from 'mobx';
 
 import storage from 'common/storage';
-
-const NETEASE = 'netease';
-const FNOS = 'fnos';
-
-// 存储键
-const KEY_SOURCE = 'source';
-const KEY_FNOS_PROFILE = 'fnos-profile';
+import { NETEASE, FNOS, KEY_SOURCE, KEY_FNOS_PROFILE, readSource, readFnosProfile } from 'common/source';
 
 /**
  * 音源与登录态。
@@ -30,15 +24,10 @@ class Source {
     @observable initialized = false;
 
     @action async init() {
-        var source = await storage.get(KEY_SOURCE);
-        var fnosProfile = await storage.get(KEY_FNOS_PROFILE);
-
-        // electron-json-storage 对不存在的 key 返回 {}（不是 undefined），
-        // 所以这里必须校验是不是合法音源，否则 source 会变成 {} 这种真值。
-        self.source = (source === NETEASE || source === FNOS) ? source : null;
-        self.fnosProfile = (fnosProfile && typeof fnosProfile === 'object' && fnosProfile.base)
-            ? fnosProfile
-            : {};
+        // 音源判定只有一份权威实现（common/source.js），
+        // 主进程的服务端读的是同一个函数 —— 两边不会再读出不同结果。
+        self.source = await readSource();
+        self.fnosProfile = (await readFnosProfile()) || {};
         self.initialized = true;
 
         return self.source;
