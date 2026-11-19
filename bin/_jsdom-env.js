@@ -59,6 +59,10 @@ if (!win.Notification) {
 
 global.Notification = win.Notification;
 
+// jsdom 不实现 Image（不会真的去加载图片），
+// 但 utils/albumColors 的取色逻辑要 new Image()。
+global.Image = win.Image;
+
 // 捕获渲染期未捕获的异常（React 会把错误吞成 "Uncaught"，这里保留原始栈）
 win.addEventListener('error', ev => {
     const err = ev.error;
@@ -70,6 +74,11 @@ win.addEventListener('error', ev => {
 
 // ---- webpack alias ----
 const ROOT = path.join(__dirname, '..');
+
+// utils/albumColors 由 src/app.js 挂成 window.AlbumColors，
+// 测试里不加载 app.js，但 helper.getPallet 会用到它 —— 缺了会抛
+// "window.AlbumColors is not a constructor"。
+require(path.join(ROOT, 'src', 'js', 'utils', 'albumColors'));
 const CLIENT = path.join(ROOT, 'src');
 
 const ALIAS = {

@@ -105,7 +105,9 @@ function request(base, pathname, options = {}) {
                     // 非 JSON 响应，保持原文
                 }
 
-                if (res.statusCode === 401) {
+                // fnOS 未授权时返回 HTTP 200 + body.code 120001，
+                // 不是 HTTP 401 —— 只看状态码会把「未授权」当成正常数据。
+                if (res.statusCode === 401 || (data && data.code === 120001)) {
                     var unauthorized = Error(`fnOS unauthorized: ${pathname}`);
 
                     unauthorized.status = 401;

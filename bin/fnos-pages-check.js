@@ -81,8 +81,8 @@ async function main() {
     console.log('=== 首页卡片链接 ===');
     const home = await get('/api/fnos/home');
 
-    const albumCard = home.list[1][0];
-    const artistCard = home.list[2][0];
+    const albumCard = home.albums[0];
+    const artistCard = home.artists[0];
 
     assert.ok(
         albumCard.link.startsWith('/fnos/album/'),

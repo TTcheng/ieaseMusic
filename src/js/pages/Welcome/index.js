@@ -381,7 +381,7 @@ class Welcome extends Component {
         var { classes, controller, me, home, preferences, isFnos } = this.props;
         var list = home.list;
         var logined = me.hasLogin();
-        // fnOS 模式的首页只有一项（最近添加的曲目），没有 list[1] 推荐位
+        // fnOS 模式的首页没有网易云的推荐位（list[1] 是歌单列表）
         var hasRecommend = !isFnos() && logined && list.length && list[1].size;
 
         return (
@@ -456,7 +456,7 @@ class Welcome extends Component {
                     </aside>
 
                     {
-                        list.length
+                        (isFnos() ? (home.recent || list.length) : list.length)
                             ? (
                                 <section className={classes.list}>
                                     {
@@ -464,13 +464,13 @@ class Welcome extends Component {
                                             ? (
                                                 <React.Fragment>
                                                     {
-                                                        this.renderFnosTracks(list[0] && list[0].songs)
+                                                        this.renderFnosTracks(
+                                                            (home.recent && home.recent.songs) || []
+                                                        )
                                                     }
                                                     {
-                                                        // 专辑与艺术家卡片（list[1] / list[2]）
-                                                        this.renderPlaylist(
-                                                            [].concat(list[1] || [], list[2] || [])
-                                                        )
+                                                        // 专辑与艺术家卡片（home.list 里已是两者的拼接）
+                                                        this.renderPlaylist(list)
                                                     }
                                                 </React.Fragment>
                                             )

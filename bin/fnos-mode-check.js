@@ -71,9 +71,9 @@ async function main() {
 
     console.log('  status:', home.status);
     assert.strictEqual(home.status, 200);
-    assert.ok(home.j.list.length, '应返回列表');
+    assert.ok(home.j.recent, '应返回 recent 播放列表');
 
-    const recent = home.j.list[0];
+    const recent = home.j.recent;
 
     console.log(`✓ 首页返回「${recent.name}」，${recent.songs.length} 首`);
     assert.ok(recent.songs.length > 0, '应有曲目');

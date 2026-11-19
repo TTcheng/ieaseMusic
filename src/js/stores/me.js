@@ -187,10 +187,18 @@ class Me {
                 }
             });
         } else {
+            // 取消红心是网易云的功能（fnOS 没有红心），
+            // home.list[0] 是网易云首页的红心歌单。
+            var pid = home.list[0] && home.list[0].id;
+
+            if (!pid) {
+                return;
+            }
+
             response = await axios.get('/playlist/tracks', {
                 params: {
                     op: 'del',
-                    pid: home.list[0].id,
+                    pid,
                     tracks: song.id,
                 }
             });
